@@ -1,0 +1,73 @@
+name: Android foundation validation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Record exact source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
+          mkdir -p build-evidence
+          printf '%s\n' "$ACTUAL_SHA" | tee build-evidence/source-commit.txt
+
+      - name: Repository contract validation
+        run: python3 scripts/validate_repository.py
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Unit tests
+        run: gradle :app:testDebugUnitTest
+
+      - name: Lint
+        run: gradle :app:lintDebug
+
+      - name: Assemble development APK
+        run: gradle :app:assembleDebug
+
+      - name: Verify development APK identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+          sha256sum "$APK" | tee build-evidence/app-debug.apk.sha256
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt -print | sort -V | tail -n 1)"
+          test -n "$AAPT"
+          "$AAPT" dump badging "$APK" | tee build-evidence/app-debug.badging.txt
+          grep -Fq "package: name='com.goreecloud.filemanager.dev' versionCode='1' versionName='0.1.0-dev'" build-evidence/app-debug.badging.txt
+          grep -Fq "application-label:'GoreeCloud File Manager Dev'" build-evidence/app-debug.badging.txt
+
+      - name: Upload development APK evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: goreecloud-file-manager-development-apk-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            build-evidence/source-commit.txt
+            build-evidence/app-debug.apk.sha256
+            build-evidence/app-debug.badging.txt
+          if-no-files-found: error
+          retention-days: 14
