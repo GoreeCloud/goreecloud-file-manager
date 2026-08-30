@@ -2,22 +2,34 @@
 
 This file distinguishes **implemented now** from **target product scope**. Planned capabilities must not be read as current functionality.
 
-## Implemented in the native foundation
+## Implemented in the current Android development slice
 
 - Native Android application shell.
 - Adaptive Home/Browse navigation foundation.
 - Real browsing of the application's private local files directory.
-- Folder entry/navigation within that bounded local provider.
-- File/folder metadata model for name, path, size, modification time, and item type.
+- Android system document-tree picker integration for user-authorized storage roots.
+- Persisted URI-permission discovery so authorized document trees can be restored after application restart.
+- Provider-scoped browser locations and resource identities rather than assuming every item has a normal filesystem path.
+- Explicit per-item storage capabilities for read, child listing, create file/folder, rename, delete, copy, and move concepts.
+- Capability-driven UI that exposes only implemented and provider-supported mutation actions.
+- Folder creation in app-private storage and supported Android document-tree providers.
+- Rename in app-private storage and supported Android document-tree providers.
+- Delete in app-private storage and supported Android document-tree providers, with recursive folder deletion deliberately refused.
+- File/folder metadata for name, size, modification time, item type, provider identity, and location kind where available.
+- Operation outcomes that distinguish success, rejection, and failure and refresh provider state after mutation attempts.
+- File-name validation for basic path safety and cross-provider portability.
 - Typed synchronization, backup, continuity, privacy, security, identity, and coordination evidence states.
 - Explicit unknown/unavailable states.
 - First-party platform adapter interfaces for Drive, Sync, Backup, Everkeep, Privacy Shield, Wardveil, Identity, and Mesh.
-- Unit tests for critical status-separation rules.
+- Unit tests for critical status-separation rules and app-private mutation/path-confinement behavior.
 - Repository validation, lint, unit-test, and development APK CI workflow.
+- Required repository and central-user-manual documentation model.
 
 ## Target file-management scope
 
-Target capabilities include core copy/move/rename/delete/restore operations; multi-selection; drag and drop; conflict handling; list/grid/gallery/column/detail views; breadcrumbs; tabs/windows/workspaces; local, external, removable, network, and remote storage; archives; permissions; checksums; duplicate handling; transfer queues; Trash; offline files; and storage cleanup/intelligence.
+Target capabilities include complete copy/move/duplicate/create/delete/restore operations; multi-selection; drag and drop; conflict handling; list/grid/gallery/column/detail views; breadcrumbs; tabs/windows/workspaces; removable and network storage specializations; archives; permissions; checksums; duplicate handling; transfer queues; Trash; offline files; and storage cleanup/intelligence.
+
+The current mutation slice is intentionally narrower than the target. It does not recursively delete folders, does not yet provide copy/move/duplicate/create-file workflows, and does not claim unified Trash or recovery semantics.
 
 ## Target discovery and organization scope
 
@@ -42,6 +54,6 @@ Target previews include supported images, video, audio, PDF, text, code, archive
 
 Target platform experiences include a GoreeCloud-native file picker, save experience, open-with/reveal-in-file-manager flows, deep links, cross-application handoff, Operations Center, platform-level file status, and unified recovery/continuity pathways.
 
-## Not yet implemented
+## Not yet implemented or accepted
 
-The foundation does **not** yet provide broad device filesystem access, GoreeCloud Drive connectivity, real Sync/Backup/Everkeep/Privacy/Wardveil/Identity/Mesh runtime calls, universal indexing/search, destructive file operations, sharing, previews, network storage, external media, system file picker registration, or production acceptance.
+The current application does **not** yet provide GoreeCloud Drive connectivity; real Sync/Backup/Everkeep/Privacy/Wardveil/Identity/Mesh runtime calls; universal indexing/search; copy/move/duplicate/create-file workflows; unified Trash/recovery; multi-selection; sharing; previews; network storage; removable-media-specific controls; system file-picker registration; complete current-Stable Glaze UI acceptance; production signing/deployment; or production/Stable acceptance.

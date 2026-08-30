@@ -2,21 +2,38 @@
 
 GoreeCloud File Manager is the original GoreeCloud-owned file-management application for browsing and controlling files across supported local, cloud, synchronized, removable, network, backup, and continuity contexts.
 
-> **Development status:** native Android foundation in active development. This repository is **not Stable or production accepted**. The current implementation is an initial native shell and evidence-safe file-state foundation; the complete product scope described in the project specification is not yet implemented.
+> **Development status:** native Android application in active development. This repository is **not Stable or production accepted**. The current implementation now includes user-authorized Android storage roots and a first capability-driven mutation slice, but the complete product scope described in the project specification is not yet implemented.
 
 ## Current implementation
 
 The repository currently provides:
 
 - a native Android/Jetpack Compose application foundation;
-- a real app-private local-storage browser used as the first storage provider;
+- a real app-private local-storage provider;
+- Android Storage Access Framework document-tree authorization using the system picker and persisted URI permissions;
+- browsing of app-private storage and user-selected Android document trees without requesting unrestricted filesystem access;
+- provider-scoped resource identity and explicit per-item capabilities;
+- verified create-folder, rename, and delete operations for supported providers;
+- deliberate refusal of recursive folder deletion in this development slice;
+- operation-result messaging and refresh-after-operation reconciliation;
 - Home and Browse surfaces with compact/adaptive navigation behavior;
 - a unified file-status domain model that keeps synchronization, backup/recoverability, privacy, security, and continuity state separate;
 - explicit `unknown`/`unavailable` evidence states so missing integration is not presented as protection;
 - adapter boundaries for GoreeCloud Drive, GoreeCloud Sync, GoreeCloud Backup, Everkeep, Privacy Shield, Wardveil Security, GoreeCloud Identity, and GoreeCloud Mesh;
-- repository validation, Android unit tests, lint, and development APK assembly in CI.
+- repository validation, Android unit tests, lint, and development APK assembly in CI;
+- a repository `USER-MANUAL.md` synchronized with the central GoreeCloud User Manual requirement.
 
-App-private browsing is intentionally narrow at this milestone. Broad device storage, Storage Access Framework roots, removable media, network locations, GoreeCloud Drive, cross-device state, destructive file operations, search/indexing, previews, sharing, recovery, and platform service integrations remain implementation work.
+The current storage slice remains intentionally bounded. Copy, move, duplicate, file creation, multi-selection, unified Trash/recovery, removable-storage-specific controls, network locations, GoreeCloud Drive, cross-device state, search/indexing, previews, sharing, and accepted platform-service runtime integrations remain implementation work.
+
+## Authorized Android storage model
+
+File Manager does not equate filesystem access with unrestricted device access.
+
+The built-in app-private provider is confined to the application's own private files root. Broader Android storage is added only through `ACTION_OPEN_DOCUMENT_TREE` / the Android system tree picker. File Manager persists the user-granted tree permission when Android allows it and reconstructs authorized providers from Android's persisted URI-permission state.
+
+A selected tree is treated as an Android document provider, not blindly labeled local disk storage. It may represent local storage, removable media, or another DocumentsProvider. Every visible item retains provider-scoped identity and capability state.
+
+Mutation actions are capability-driven. File Manager exposes create-folder, rename, or delete only when both authorization and the backing provider report support. Recursive folder deletion is intentionally rejected until unified Trash, backup/recovery, Everkeep, and destructive-operation safeguards are implemented and accepted.
 
 ## Product direction
 
@@ -48,8 +65,9 @@ GoreeCloud Identity and GoreeCloud Mesh are also first-class platform authoritie
 - [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md) — product-quality objectives, not parity claims
 - [ARCHITECTURE.md](ARCHITECTURE.md) — native architecture, provider model, and authority boundaries
 - [CONFORMANCE.md](CONFORMANCE.md) — current GoreeCloud platform-gate status
+- [USER-MANUAL.md](USER-MANUAL.md) — current user-facing Android behavior and limitations
 
-The canonical project record and historical change log are maintained in Google Drive under `GoreeCloud/Projects` and `GoreeCloud/Changelogs`.
+The canonical project record and historical change log are maintained in Google Drive under `GoreeCloud/Projects` and `GoreeCloud/Changelogs`. The central user manual is maintained under `GoreeCloud/User Manuals`.
 
 ## Android development baseline
 

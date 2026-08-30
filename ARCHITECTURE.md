@@ -11,27 +11,76 @@ Glaze UI application surfaces
         ↓
 File Manager application/use cases
         ↓
-Unified file model + operation/evidence model
+Unified file + provider capability + operation/evidence model
         ↓
 Storage/provider adapters ───── Platform authority adapters
         ↓                               ↓
-Local / SAF / External / Drive     Sync / Backup / Everkeep
-Network / other supported roots    Privacy / Wardveil / Identity / Mesh
+App-private / Android SAF          Sync / Backup / Everkeep
+External / Drive / Network         Privacy / Wardveil / Identity / Mesh
 ```
 
-Storage providers own filesystem/location mechanics. Platform authorities own their respective evidence and authorization domains. The application composes those results without transferring authority between them.
+Storage providers own resource/location mechanics. Platform authorities own their respective evidence and authorization domains. File Manager composes those results without transferring authority between them.
 
 ## 3. Provider contract
 
-Every storage provider should eventually expose a capability declaration and operations appropriate to its authority. A provider that is read-only must not advertise mutation. A provider unable to verify a final operation state must return an uncertain/reconciliation state instead of declaring success.
+Every storage provider exposes a `StorageProviderDescriptor`, a provider-scoped root `BrowserLocation`, child listing, and only the mutation methods it can actually support.
 
-The first concrete provider is deliberately narrow: app-private Android storage. It proves the native browsing path without requesting broad storage privileges before permission, policy, privacy, and security behavior is designed and tested.
+Each file/folder carries a provider ID plus a provider-scoped resource ID. File Manager does not assume that every resource has a normal filesystem path. This is required for Android document URIs, GoreeCloud Drive resource IDs, network identifiers, and future providers.
 
-## 4. File identity
+Per-resource capabilities currently model:
 
-A visible item must have a provider-scoped identity rather than relying only on a display path. Long-term provider identities should support exact operation targeting, conflict detection, state refresh, provenance, and safe cross-provider transfer.
+```text
+READ
+LIST_CHILDREN
+CREATE_FILE
+CREATE_FOLDER
+RENAME
+DELETE
+COPY
+MOVE
+```
 
-## 5. Unified evidence model
+A capability is not a promise that every provider operation will succeed. It is a precondition for presenting the operation. The provider remains authoritative for execution and must return success, rejection, or failure without manufacturing certainty.
+
+## 4. Current Android providers
+
+### App-private provider
+
+`LocalFileRepository` is confined to the application's canonical private files root. Every requested filesystem resource is canonicalized and rejected if it escapes that root.
+
+The provider currently implements listing, create-folder, rename, and delete. Recursive folder deletion is rejected. Copy, move, duplicate, and create-file are not advertised yet.
+
+### User-authorized Android document-tree provider
+
+`SafTreeFileRepository` consumes Android's Storage Access Framework / `DocumentsContract` after the user chooses a tree through the system picker.
+
+File Manager requests a persistable read permission and write permission where Android/provider policy permits it. Persisted URI permissions are used to reconstruct authorized locations on future starts. File Manager does not request unrestricted filesystem access for this path.
+
+The selected tree remains bounded by its Android tree document ID and authority. Child document URIs are accepted only when they remain inside that same tree boundary.
+
+The provider queries each document's flags and maps them into File Manager capabilities. Mutation UI is therefore based on both persisted authorization and provider-reported support.
+
+A selected Android document tree is intentionally not classified as ordinary local disk by default. Android DocumentsProviders may represent device storage, removable media, or remote/cloud-backed content.
+
+## 5. Operation semantics
+
+Provider mutation results use three outcomes:
+
+- `SUCCEEDED` — the operation returned success and File Manager obtained the expected resulting state where applicable.
+- `REJECTED` — File Manager or the provider deliberately refused the requested operation before treating it as successful.
+- `FAILED` — execution or post-operation verification failed.
+
+After a mutation attempt, the UI refreshes the provider state even when a result is uncertain, because a backing provider may have performed a side effect before returning an error or unverifiable response.
+
+The current destructive-operation safety boundary deliberately refuses recursive folder deletion. File Manager has not yet implemented the unified Trash, backup/recovery, Everkeep, and operation-journal safeguards required before broad recursive destruction should be exposed.
+
+## 6. File-name safety
+
+The shared file-name policy trims surrounding whitespace and rejects empty names, `.` / `..`, path separators, null characters, and overlong names before a mutation request is issued.
+
+This policy is a File Manager portability/safety floor. Backing providers may enforce additional naming constraints and remain authoritative for those constraints.
+
+## 7. Unified evidence model
 
 File Manager composes separate evidence dimensions. At minimum:
 
@@ -48,9 +97,9 @@ identity/device context
 version/provenance/activity
 ```
 
-No dimension can silently manufacture another. The UI must preserve `unknown`, `unavailable`, `pending`, `expired`, and `unverified` where applicable.
+No dimension can silently manufacture another. The UI must preserve `unknown`, `unavailable`, `pending`, expired, and unverified states where applicable.
 
-## 6. Sync versus backup
+## 8. Sync versus backup
 
 A synchronized object is a replicated working state. Synchronization can propagate deletion or corruption. Independent backup/recovery protection is a separate authority and evidence chain. Therefore:
 
@@ -60,11 +109,11 @@ sync == synced  ≠  backup == verified recoverable
 
 This invariant is represented in source and unit tests.
 
-## 7. Platform authority boundaries
+## 9. Platform authority boundaries
 
 ### GoreeCloud Drive
 
-Drive is a storage/resource authority for its files, ownership and applicable sharing/version state. File Manager consumes Drive contracts; it does not pretend local paths are Drive resources.
+Drive is a storage/resource authority for its files, ownership, and applicable sharing/version state. File Manager consumes Drive contracts; it does not pretend local paths or Android document URIs are Drive resources.
 
 ### GoreeCloud Sync
 
@@ -80,7 +129,7 @@ Privacy Shield determines privacy/consent/data-use authority. File Manager must 
 
 ### Wardveil Security
 
-Wardveil determines applicable security evidence and security-policy outcomes. File Manager should consume normalized Wardveil contracts, never substitute a scanner-vendor result for Wardveil authority, and never label missing coverage as clean/protected.
+Wardveil determines applicable security evidence and security-policy outcomes. File Manager consumes normalized Wardveil contracts, never substitutes a scanner-vendor result for Wardveil authority, and never labels missing coverage as clean/protected.
 
 ### GoreeCloud Identity
 
@@ -88,42 +137,46 @@ Identity owns authentication, accounts, actors/services, credentials, sessions, 
 
 ### GoreeCloud Mesh
 
-Mesh coordinates bounded events/state between systems. Successful delivery through Mesh is not proof that a resource operation or security/privacy/continuity decision succeeded.
+Mesh coordinates bounded events/state between systems. Successful Mesh delivery is not proof that a resource operation or security/privacy/continuity decision succeeded.
 
 ### Glaze UI
 
 Glaze UI governs application presentation, interaction, accessibility, responsiveness, and design-system semantics. It may visualize evidence but cannot create platform truth.
 
-## 8. Operation architecture
+## 10. Target operation architecture
 
-Target mutation flow:
+The complete mutation path remains:
 
 ```text
 user/app intent
 → resolve exact provider + resource identity
 → obtain applicable identity/privacy/security authorization/evidence
-→ enqueue operation
+→ validate provider capability + operation preconditions
+→ enqueue/journal operation
 → provider executes or rejects
 → verify authoritative resulting state
 → reconcile if outcome certainty is lost
 → update activity/provenance and bounded Mesh events
 ```
 
-High-impact operations should remain cancelable before commitment where technically possible and must not be blindly retried after an uncertain side effect.
+The current Android slice implements provider identity, capability checks, direct create-folder/rename/delete execution, result classification, and refresh reconciliation. A durable Operations Center, copy/move journal, conflict engine, Trash, and platform-authority preflight remain future work.
 
-## 9. Search architecture
+## 11. Search architecture
 
 Search will be layered: local/provider metadata search; authorized content indexing; cross-provider aggregation; saved filters/smart collections; and optional natural-language interpretation. Privacy Shield must gate collection/processing scope, and indexes must not become an uncontrolled copy of sensitive file content.
 
-## 10. UI architecture
+## 12. UI architecture
 
-The current Android shell targets Glaze UI 2.0.0 semantics through application-local tokens and Material 3/Compose primitives. Current source includes a 48dp interaction-floor token and adaptive phone/wide navigation structure. This is an adoption foundation only; full rendered/native/accessibility/representative-device acceptance is pending.
+The Android shell targets Glaze UI 2.0.0 semantics through application-local tokens and Material 3/Compose primitives. It has adaptive phone/wide navigation, storage-location cards, capability-driven actions, confirmation surfaces, and evidence-safe status wording.
 
-## 11. Delivery phases
+This remains an adoption foundation. Full rendered/native accessibility, responsive/form-factor behavior, representative-device testing, and current-Stable Glaze UI acceptance are pending.
 
-1. **Native foundation** — app shell, provider/evidence model, app-private browsing, CI.
-2. **Local file manager** — authorized device roots, core operations, metadata, previews, operation queue, Trash strategy, search.
-3. **GoreeCloud storage** — Drive + Sync integration, offline state, sharing/versions, cross-location transfers.
-4. **Protection and continuity** — Wardveil, Privacy Shield, Backup/Everkeep, evidence-backed destructive-action safety and recovery.
-5. **Cross-device intelligence** — Identity/Mesh device context, unified activity/provenance, smart/natural-language discovery.
-6. **Product acceptance** — complete current Glaze/Wardveil/Privacy/Everkeep gates, runtime failure testing, representative-device acceptance, and Stable qualification.
+## 13. Delivery phases
+
+1. **Native foundation** — app shell, provider/evidence model, app-private browsing, CI. Completed as source/build foundation.
+2. **Authorized Android storage** — user-selected document trees, persisted permissions, capability model, initial create/rename/delete operations. Current development slice.
+3. **Complete local operations** — create-file, copy/move/duplicate, multi-selection, conflict handling, durable Operations Center, Trash/recovery strategy, metadata/details, previews, search.
+4. **GoreeCloud storage** — Drive + Sync integration, offline state, sharing/versions, cross-location transfers.
+5. **Protection and continuity** — Wardveil, Privacy Shield, Backup/Everkeep, evidence-backed destructive-action safety and recovery.
+6. **Cross-device intelligence** — Identity/Mesh device context, unified activity/provenance, smart/natural-language discovery.
+7. **Product acceptance** — complete current Glaze/Wardveil/Privacy/Everkeep gates, runtime failure testing, representative-device acceptance, signing/release/rollback, and Stable qualification.
