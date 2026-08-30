@@ -13,6 +13,8 @@ import com.goreecloud.filemanager.model.FileOperationOutcome
 import com.goreecloud.filemanager.model.FileOperationResult
 import com.goreecloud.filemanager.model.StorageAuthorizationKind
 import com.goreecloud.filemanager.model.StorageProviderDescriptor
+import java.io.InputStream
+import java.io.OutputStream
 import java.time.Instant
 
 class SafTreeFileRepository(
@@ -69,6 +71,44 @@ class SafTreeFileRepository(
         }
     }
 
+    override fun createFile(parent: BrowserLocation, name: String): FileOperationResult {
+        requireProvider(parent.providerId)
+        FileNamePolicy.errorFor(name)?.let {
+            return FileOperationResult(FileOperationOutcome.REJECTED, it)
+        }
+        if (FileCapability.CREATE_FILE !in parent.capabilities) {
+            return FileOperationResult(
+                FileOperationOutcome.REJECTED,
+                "File creation is not available in this authorized location.",
+            )
+        }
+
+        return runOperation("File creation") {
+            val parentUri = checkedDocumentUri(parent.resourceId)
+            val normalizedName = FileNamePolicy.normalize(name)
+            val createdUri = DocumentsContract.createDocument(
+                contentResolver,
+                parentUri,
+                DEFAULT_FILE_MIME_TYPE,
+                normalizedName,
+            ) ?: return@runOperation FileOperationResult(
+                FileOperationOutcome.FAILED,
+                "The Android document provider did not create the file.",
+            )
+            val metadata = queryDocument(createdUri)
+                ?: return@runOperation FileOperationResult(
+                    FileOperationOutcome.FAILED,
+                    "The file was created but its resulting state could not be verified.",
+                )
+
+            FileOperationResult(
+                outcome = FileOperationOutcome.SUCCEEDED,
+                message = "Created file ${metadata.displayName}.",
+                resultingEntry = metadata.toFileEntry(createdUri),
+            )
+        }
+    }
+
     override fun createFolder(parent: BrowserLocation, name: String): FileOperationResult {
         requireProvider(parent.providerId)
         FileNamePolicy.errorFor(name)?.let {
@@ -105,6 +145,22 @@ class SafTreeFileRepository(
                 resultingEntry = metadata.toFileEntry(createdUri),
             )
         }
+    }
+
+    override fun openRead(entry: FileEntry): InputStream? {
+        requireProvider(entry.providerId)
+        if (entry.type != FileItemType.FILE || FileCapability.READ !in entry.capabilities) {
+            return null
+        }
+        return contentResolver.openInputStream(checkedDocumentUri(entry.resourceId))
+    }
+
+    override fun openWrite(entry: FileEntry): OutputStream? {
+        requireProvider(entry.providerId)
+        if (entry.type != FileItemType.FILE || !hasWritePermission) {
+            return null
+        }
+        return contentResolver.openOutputStream(checkedDocumentUri(entry.resourceId), "w")
     }
 
     override fun rename(entry: FileEntry, newName: String): FileOperationResult {
@@ -208,8 +264,11 @@ class SafTreeFileRepository(
                 hasWritePermission &&
                 metadata.flags and DocumentsContract.Document.FLAG_DIR_SUPPORTS_CREATE != 0
             ) {
+                add(FileCapability.CREATE_FILE)
                 add(FileCapability.CREATE_FOLDER)
             }
+        } else {
+            add(FileCapability.COPY)
         }
         if (
             hasWritePermission &&
@@ -222,6 +281,9 @@ class SafTreeFileRepository(
             metadata.flags and DocumentsContract.Document.FLAG_SUPPORTS_DELETE != 0
         ) {
             add(FileCapability.DELETE)
+            if (metadata.type == FileItemType.FILE) {
+                add(FileCapability.MOVE)
+            }
         }
     }
 
@@ -307,6 +369,7 @@ class SafTreeFileRepository(
 
     companion object {
         private const val PROVIDER_PREFIX = "android-saf-tree:"
+        private const val DEFAULT_FILE_MIME_TYPE = "application/octet-stream"
         private val PROJECTION = arrayOf(
             DocumentsContract.Document.COLUMN_DOCUMENT_ID,
             DocumentsContract.Document.COLUMN_DISPLAY_NAME,

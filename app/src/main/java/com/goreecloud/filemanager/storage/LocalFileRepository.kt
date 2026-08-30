@@ -10,6 +10,8 @@ import com.goreecloud.filemanager.model.FileOperationResult
 import com.goreecloud.filemanager.model.StorageAuthorizationKind
 import com.goreecloud.filemanager.model.StorageProviderDescriptor
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 import java.time.Instant
 
 class LocalFileRepository(rootDirectory: File) : FileStorageProvider {
@@ -116,6 +118,30 @@ class LocalFileRepository(rootDirectory: File) : FileStorageProvider {
         }
     }
 
+    override fun openRead(entry: FileEntry): InputStream? {
+        requireProvider(entry.providerId)
+        if (entry.type != FileItemType.FILE || FileCapability.READ !in entry.capabilities) {
+            return null
+        }
+        val source = requireWithinRoot(File(entry.resourceId))
+        if (!source.isFile) {
+            return null
+        }
+        return source.inputStream()
+    }
+
+    override fun openWrite(entry: FileEntry): OutputStream? {
+        requireProvider(entry.providerId)
+        if (entry.type != FileItemType.FILE) {
+            return null
+        }
+        val target = requireWithinRoot(File(entry.resourceId))
+        if (!target.isFile) {
+            return null
+        }
+        return target.outputStream()
+    }
+
     override fun rename(entry: FileEntry, newName: String): FileOperationResult {
         requireProvider(entry.providerId)
         FileNamePolicy.errorFor(newName)?.let { return FileOperationResult(FileOperationOutcome.REJECTED, it) }
@@ -166,6 +192,7 @@ class LocalFileRepository(rootDirectory: File) : FileStorageProvider {
                 add(FileCapability.CREATE_FOLDER)
             } else {
                 add(FileCapability.COPY)
+                add(FileCapability.MOVE)
             }
         }
         return FileEntry(
