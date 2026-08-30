@@ -13,10 +13,22 @@ interface FileStorageProvider {
 
     fun list(directory: BrowserLocation): List<FileEntry>
 
+    fun createFile(parent: BrowserLocation, name: String): FileOperationResult =
+        FileOperationResult(
+            outcome = FileOperationOutcome.REJECTED,
+            message = "This storage provider does not support file creation.",
+        )
+
     fun createFolder(parent: BrowserLocation, name: String): FileOperationResult =
         FileOperationResult(
             outcome = FileOperationOutcome.REJECTED,
             message = "This storage provider does not support folder creation.",
+        )
+
+    fun duplicate(entry: FileEntry, destination: BrowserLocation, newName: String): FileOperationResult =
+        FileOperationResult(
+            outcome = FileOperationOutcome.REJECTED,
+            message = "This storage provider does not support duplication.",
         )
 
     fun rename(entry: FileEntry, newName: String): FileOperationResult =
