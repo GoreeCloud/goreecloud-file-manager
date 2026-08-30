@@ -30,6 +30,7 @@ class LocalFileRepository(rootDirectory: File) : FileStorageProvider {
         capabilities = setOf(
             FileCapability.READ,
             FileCapability.LIST_CHILDREN,
+            FileCapability.CREATE_FILE,
             FileCapability.CREATE_FOLDER,
         ),
     )
@@ -38,81 +39,99 @@ class LocalFileRepository(rootDirectory: File) : FileStorageProvider {
         requireProvider(directory.providerId)
         val safeDirectory = requireWithinRoot(File(directory.resourceId))
         require(safeDirectory.isDirectory) { "Requested resource is not a directory" }
-
         return safeDirectory.listFiles()
             .orEmpty()
             .sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase() })
             .map(::entryFor)
     }
 
-    override fun createFolder(parent: BrowserLocation, name: String): FileOperationResult {
+    override fun createFile(parent: BrowserLocation, name: String): FileOperationResult {
         requireProvider(parent.providerId)
-        FileNamePolicy.errorFor(name)?.let {
-            return FileOperationResult(FileOperationOutcome.REJECTED, it)
+        FileNamePolicy.errorFor(name)?.let { return FileOperationResult(FileOperationOutcome.REJECTED, it) }
+        if (FileCapability.CREATE_FILE !in parent.capabilities) {
+            return FileOperationResult(FileOperationOutcome.REJECTED, "File creation is not available in this location.")
         }
-        if (FileCapability.CREATE_FOLDER !in parent.capabilities) {
-            return FileOperationResult(
-                FileOperationOutcome.REJECTED,
-                "Folder creation is not available in this location.",
-            )
-        }
-
         val safeParent = requireWithinRoot(File(parent.resourceId))
         val normalizedName = FileNamePolicy.normalize(name)
         val target = requireWithinRoot(File(safeParent, normalizedName))
         if (target.exists()) {
-            return FileOperationResult(
-                FileOperationOutcome.REJECTED,
-                "An item named $normalizedName already exists.",
-            )
+            return FileOperationResult(FileOperationOutcome.REJECTED, "An item named $normalizedName already exists.")
         }
-
-        return if (target.mkdir()) {
-            FileOperationResult(
-                outcome = FileOperationOutcome.SUCCEEDED,
-                message = "Created folder $normalizedName.",
-                resultingEntry = entryFor(target),
-            )
+        return if (target.createNewFile()) {
+            FileOperationResult(FileOperationOutcome.SUCCEEDED, "Created file $normalizedName.", entryFor(target))
         } else {
-            FileOperationResult(
-                FileOperationOutcome.FAILED,
-                "Android did not create the folder.",
-            )
+            FileOperationResult(FileOperationOutcome.FAILED, "Android did not create the file.")
+        }
+    }
+
+    override fun createFolder(parent: BrowserLocation, name: String): FileOperationResult {
+        requireProvider(parent.providerId)
+        FileNamePolicy.errorFor(name)?.let { return FileOperationResult(FileOperationOutcome.REJECTED, it) }
+        if (FileCapability.CREATE_FOLDER !in parent.capabilities) {
+            return FileOperationResult(FileOperationOutcome.REJECTED, "Folder creation is not available in this location.")
+        }
+        val safeParent = requireWithinRoot(File(parent.resourceId))
+        val normalizedName = FileNamePolicy.normalize(name)
+        val target = requireWithinRoot(File(safeParent, normalizedName))
+        if (target.exists()) {
+            return FileOperationResult(FileOperationOutcome.REJECTED, "An item named $normalizedName already exists.")
+        }
+        return if (target.mkdir()) {
+            FileOperationResult(FileOperationOutcome.SUCCEEDED, "Created folder $normalizedName.", entryFor(target))
+        } else {
+            FileOperationResult(FileOperationOutcome.FAILED, "Android did not create the folder.")
+        }
+    }
+
+    override fun duplicate(entry: FileEntry, destination: BrowserLocation, newName: String): FileOperationResult {
+        requireProvider(entry.providerId)
+        requireProvider(destination.providerId)
+        FileNamePolicy.errorFor(newName)?.let { return FileOperationResult(FileOperationOutcome.REJECTED, it) }
+        if (FileCapability.COPY !in entry.capabilities || FileCapability.CREATE_FILE !in destination.capabilities) {
+            return FileOperationResult(FileOperationOutcome.REJECTED, "Duplication is not available for this item or destination.")
+        }
+        if (entry.type != FileItemType.FILE) {
+            return FileOperationResult(FileOperationOutcome.REJECTED, "Recursive folder duplication is not enabled.")
+        }
+        val source = requireWithinRoot(File(entry.resourceId))
+        val safeDestination = requireWithinRoot(File(destination.resourceId))
+        val normalizedName = FileNamePolicy.normalize(newName)
+        val target = requireWithinRoot(File(safeDestination, normalizedName))
+        if (target.exists()) {
+            return FileOperationResult(FileOperationOutcome.REJECTED, "An item named $normalizedName already exists.")
+        }
+        return try {
+            source.inputStream().use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+            if (target.length() != source.length()) {
+                target.delete()
+                FileOperationResult(FileOperationOutcome.FAILED, "The duplicated file could not be verified.")
+            } else {
+                FileOperationResult(FileOperationOutcome.SUCCEEDED, "Duplicated ${entry.displayName} as $normalizedName.", entryFor(target))
+            }
+        } catch (_: Exception) {
+            target.delete()
+            FileOperationResult(FileOperationOutcome.FAILED, "Android did not duplicate the file.")
         }
     }
 
     override fun rename(entry: FileEntry, newName: String): FileOperationResult {
         requireProvider(entry.providerId)
-        FileNamePolicy.errorFor(newName)?.let {
-            return FileOperationResult(FileOperationOutcome.REJECTED, it)
-        }
+        FileNamePolicy.errorFor(newName)?.let { return FileOperationResult(FileOperationOutcome.REJECTED, it) }
         if (FileCapability.RENAME !in entry.capabilities) {
-            return FileOperationResult(
-                FileOperationOutcome.REJECTED,
-                "Rename is not available for this item.",
-            )
+            return FileOperationResult(FileOperationOutcome.REJECTED, "Rename is not available for this item.")
         }
-
         val source = requireWithinRoot(File(entry.resourceId))
-        val parent = source.parentFile
-            ?.let(::requireWithinRoot)
+        val parent = source.parentFile?.let(::requireWithinRoot)
             ?: return FileOperationResult(FileOperationOutcome.REJECTED, "The item has no writable parent.")
         val normalizedName = FileNamePolicy.normalize(newName)
         val target = requireWithinRoot(File(parent, normalizedName))
-
         if (target.exists()) {
-            return FileOperationResult(
-                FileOperationOutcome.REJECTED,
-                "An item named $normalizedName already exists.",
-            )
+            return FileOperationResult(FileOperationOutcome.REJECTED, "An item named $normalizedName already exists.")
         }
-
         return if (source.renameTo(target)) {
-            FileOperationResult(
-                outcome = FileOperationOutcome.SUCCEEDED,
-                message = "Renamed ${entry.displayName} to $normalizedName.",
-                resultingEntry = entryFor(target),
-            )
+            FileOperationResult(FileOperationOutcome.SUCCEEDED, "Renamed ${entry.displayName} to $normalizedName.", entryFor(target))
         } else {
             FileOperationResult(FileOperationOutcome.FAILED, "Android did not rename the item.")
         }
@@ -121,25 +140,14 @@ class LocalFileRepository(rootDirectory: File) : FileStorageProvider {
     override fun delete(entry: FileEntry): FileOperationResult {
         requireProvider(entry.providerId)
         if (FileCapability.DELETE !in entry.capabilities) {
-            return FileOperationResult(
-                FileOperationOutcome.REJECTED,
-                "Delete is not available for this item.",
-            )
+            return FileOperationResult(FileOperationOutcome.REJECTED, "Delete is not available for this item.")
         }
-
         val source = requireWithinRoot(File(entry.resourceId))
         if (source.isDirectory && source.listFiles().orEmpty().isNotEmpty()) {
-            return FileOperationResult(
-                FileOperationOutcome.REJECTED,
-                "Recursive folder deletion is not enabled. Empty the folder first.",
-            )
+            return FileOperationResult(FileOperationOutcome.REJECTED, "Recursive folder deletion is not enabled. Empty the folder first.")
         }
-
         return if (source.delete()) {
-            FileOperationResult(
-                FileOperationOutcome.SUCCEEDED,
-                "Deleted ${entry.displayName}.",
-            )
+            FileOperationResult(FileOperationOutcome.SUCCEEDED, "Deleted ${entry.displayName}.")
         } else {
             FileOperationResult(FileOperationOutcome.FAILED, "Android did not delete the item.")
         }
@@ -154,10 +162,12 @@ class LocalFileRepository(rootDirectory: File) : FileStorageProvider {
             add(FileCapability.DELETE)
             if (isDirectory) {
                 add(FileCapability.LIST_CHILDREN)
+                add(FileCapability.CREATE_FILE)
                 add(FileCapability.CREATE_FOLDER)
+            } else {
+                add(FileCapability.COPY)
             }
         }
-
         return FileEntry(
             providerId = PROVIDER_ID,
             resourceId = safeFile.path,
@@ -165,9 +175,7 @@ class LocalFileRepository(rootDirectory: File) : FileStorageProvider {
             type = if (isDirectory) FileItemType.FOLDER else FileItemType.FILE,
             locationKind = FileLocationKind.APP_PRIVATE_LOCAL,
             sizeBytes = if (safeFile.isFile) safeFile.length() else null,
-            modifiedAt = safeFile.lastModified()
-                .takeIf { it > 0L }
-                ?.let(Instant::ofEpochMilli),
+            modifiedAt = safeFile.lastModified().takeIf { it > 0L }?.let(Instant::ofEpochMilli),
             capabilities = capabilities,
         )
     }
