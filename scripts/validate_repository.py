@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,11 +41,21 @@ for required_text in [
 
 for misleading in [
     "hundreds of built-in features",
-    "Protected by Wardveil",
     "production ready",
 ]:
     if misleading.lower() in readme.lower():
         errors.append(f"README contains prohibited/unverified broad claim: {misleading!r}")
+
+# Reject positive Wardveil protection claims while allowing explicit statements that
+# such a claim is not currently justified.
+for pattern in [
+    r"\bis protected by wardveil\b",
+    r"\bwardveil[- ]protected\b",
+    r"\bfully protected by wardveil\b",
+]:
+    if re.search(pattern, readme, flags=re.IGNORECASE):
+        errors.append("README contains an unverified positive Wardveil protection claim")
+        break
 
 architecture = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
 if "Sync versus backup" not in architecture:
