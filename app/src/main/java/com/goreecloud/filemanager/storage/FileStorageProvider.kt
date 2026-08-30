@@ -6,6 +6,8 @@ import com.goreecloud.filemanager.model.FileItemType
 import com.goreecloud.filemanager.model.FileOperationOutcome
 import com.goreecloud.filemanager.model.FileOperationResult
 import com.goreecloud.filemanager.model.StorageProviderDescriptor
+import java.io.InputStream
+import java.io.OutputStream
 
 interface FileStorageProvider {
     val descriptor: StorageProviderDescriptor
@@ -30,6 +32,10 @@ interface FileStorageProvider {
             outcome = FileOperationOutcome.REJECTED,
             message = "This storage provider does not support duplication.",
         )
+
+    fun openRead(entry: FileEntry): InputStream? = null
+
+    fun openWrite(entry: FileEntry): OutputStream? = null
 
     fun rename(entry: FileEntry, newName: String): FileOperationResult =
         FileOperationResult(
