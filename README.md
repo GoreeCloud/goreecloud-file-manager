@@ -2,7 +2,7 @@
 
 GoreeCloud File Manager is the original GoreeCloud-owned file-management application for browsing and controlling files across supported local, cloud, synchronized, removable, network, backup, and continuity contexts.
 
-> **Development status:** native Android application in active development. This repository is **not Stable or production accepted**. The current implementation now includes user-authorized Android storage roots and a first capability-driven mutation slice, but the complete product scope described in the project specification is not yet implemented.
+> **Development status:** native Android application in active development. This repository is **not Stable or production accepted**. The current implementation now includes user-authorized Android document trees and a first capability-driven mutation slice, but the complete product scope described in the project specification is not yet implemented.
 
 ## Current implementation
 
