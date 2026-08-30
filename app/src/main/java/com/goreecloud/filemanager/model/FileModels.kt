@@ -9,6 +9,7 @@ enum class FileItemType {
 
 enum class FileLocationKind {
     APP_PRIVATE_LOCAL,
+    USER_AUTHORIZED_DOCUMENT_TREE,
     LOCAL_DEVICE,
     EXTERNAL,
     NETWORK,
@@ -17,16 +18,62 @@ enum class FileLocationKind {
     BACKUP_OR_RECOVERY_RECORD,
 }
 
+enum class FileCapability {
+    READ,
+    LIST_CHILDREN,
+    CREATE_FILE,
+    CREATE_FOLDER,
+    RENAME,
+    DELETE,
+    COPY,
+    MOVE,
+}
+
+enum class StorageAuthorizationKind {
+    APP_PRIVATE,
+    USER_SELECTED_PERSISTED,
+}
+
+data class StorageProviderDescriptor(
+    val id: String,
+    val displayName: String,
+    val locationKind: FileLocationKind,
+    val authorizationKind: StorageAuthorizationKind,
+    val isReadOnly: Boolean,
+)
+
+data class BrowserLocation(
+    val providerId: String,
+    val resourceId: String,
+    val displayName: String,
+    val capabilities: Set<FileCapability> = emptySet(),
+)
+
 data class FileEntry(
     val providerId: String,
     val resourceId: String,
     val displayName: String,
-    val absolutePath: String,
     val type: FileItemType,
     val locationKind: FileLocationKind,
     val sizeBytes: Long?,
     val modifiedAt: Instant?,
+    val capabilities: Set<FileCapability> = emptySet(),
 )
+
+enum class FileOperationOutcome {
+    SUCCEEDED,
+    REJECTED,
+    FAILED,
+}
+
+data class FileOperationResult(
+    val outcome: FileOperationOutcome,
+    val message: String,
+    val resultingEntry: FileEntry? = null,
+) {
+    val succeeded: Boolean
+        get() = outcome == FileOperationOutcome.SUCCEEDED
+}
 
 enum class EvidenceState {
     VERIFIED,

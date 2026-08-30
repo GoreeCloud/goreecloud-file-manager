@@ -13,13 +13,16 @@ required_root = [
     "COMPETITIVE-OBJECTIVES.md",
     "ARCHITECTURE.md",
     "CONFORMANCE.md",
+    "USER-MANUAL.md",
 ]
 required_source = [
     "app/src/main/AndroidManifest.xml",
     "app/src/main/java/com/goreecloud/filemanager/MainActivity.kt",
     "app/src/main/java/com/goreecloud/filemanager/model/FileModels.kt",
     "app/src/main/java/com/goreecloud/filemanager/platform/PlatformAuthorities.kt",
+    "app/src/main/java/com/goreecloud/filemanager/storage/FileStorageProvider.kt",
     "app/src/main/java/com/goreecloud/filemanager/storage/LocalFileRepository.kt",
+    "app/src/main/java/com/goreecloud/filemanager/storage/SafTreeFileRepository.kt",
     "app/src/main/java/com/goreecloud/filemanager/ui/FileManagerApp.kt",
 ]
 
@@ -35,6 +38,8 @@ for required_text in [
     "Privacy Shield",
     "Everkeep",
     "not Stable or production accepted",
+    "user-authorized Android document trees",
+    "persisted URI permissions",
 ]:
     if required_text not in readme:
         errors.append(f"README missing required current-state text: {required_text!r}")
@@ -58,17 +63,42 @@ for pattern in [
         break
 
 architecture = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
-if "Sync versus backup" not in architecture:
-    errors.append("ARCHITECTURE.md must preserve the sync-versus-backup invariant")
+for required_text in [
+    "Sync versus backup",
+    "User-authorized Android document-tree provider",
+    "Recursive folder deletion",
+]:
+    if required_text not in architecture:
+        errors.append(f"ARCHITECTURE.md missing required architecture invariant: {required_text!r}")
 
 models = (ROOT / "app/src/main/java/com/goreecloud/filemanager/model/FileModels.kt").read_text(encoding="utf-8")
-for token in ["SyncState", "BackupState", "PrivacyState", "SecurityState", "EvidenceState"]:
+for token in [
+    "SyncState",
+    "BackupState",
+    "PrivacyState",
+    "SecurityState",
+    "EvidenceState",
+    "FileCapability",
+    "FileOperationOutcome",
+    "StorageProviderDescriptor",
+]:
     if token not in models:
-        errors.append(f"unified status model missing {token}")
+        errors.append(f"unified model missing {token}")
+
+manual = (ROOT / "USER-MANUAL.md").read_text(encoding="utf-8")
+for required_text in [
+    "Adding an Android storage location",
+    "Creating folders",
+    "Renaming",
+    "Deleting files and folders",
+    "not Stable or production accepted",
+]:
+    if required_text not in manual:
+        errors.append(f"USER-MANUAL.md missing current user behavior: {required_text!r}")
 
 if errors:
     for error in errors:
         print(f"ERROR: {error}", file=sys.stderr)
     raise SystemExit(1)
 
-print("GoreeCloud File Manager repository foundation validation passed.")
+print("GoreeCloud File Manager repository validation passed.")
