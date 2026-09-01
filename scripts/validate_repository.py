@@ -18,6 +18,7 @@ required_root = [
 ]
 required_source = [
     "app/src/main/AndroidManifest.xml",
+    "app/src/main/res/drawable/goreecloud_file_manager_icon.xml",
     "app/src/main/java/com/goreecloud/filemanager/MainActivity.kt",
     "app/src/main/java/com/goreecloud/filemanager/model/FileModels.kt",
     "app/src/main/java/com/goreecloud/filemanager/platform/PlatformAuthorities.kt",
@@ -52,8 +53,6 @@ for misleading in [
     if misleading.lower() in readme.lower():
         errors.append(f"README contains prohibited/unverified broad claim: {misleading!r}")
 
-# Reject positive Wardveil protection claims while allowing explicit statements that
-# such a claim is not currently justified.
 for pattern in [
     r"\bis protected by wardveil\b",
     r"\bwardveil[- ]protected\b",
@@ -67,13 +66,32 @@ branding = (ROOT / "BRANDING.md").read_text(encoding="utf-8")
 for required_text in [
     "GoreeCloud/goreecloud-branding-assets",
     "products/file-manager/app-icon.svg",
-    "concepts/product-identity-round-1/file-manager.svg",
-    "does **not yet have approved canonical product artwork**",
-    "android:icon",
+    "c723a84eb2ecb29ef8a0cef845eb1d2cff714cd0",
+    "app/src/main/res/drawable/goreecloud_file_manager_icon.xml",
+    'android:icon="@drawable/goreecloud_file_manager_icon"',
     "GoreeCloud Drive",
+    "approved canonical product artwork",
 ]:
     if required_text not in branding:
-        errors.append(f"BRANDING.md missing required identity boundary: {required_text!r}")
+        errors.append(f"BRANDING.md missing approved identity provenance: {required_text!r}")
+
+manifest = (ROOT / "app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
+if 'android:icon="@drawable/goreecloud_file_manager_icon"' not in manifest:
+    errors.append("Android manifest does not consume the approved File Manager icon derivative")
+
+icon = (ROOT / "app/src/main/res/drawable/goreecloud_file_manager_icon.xml").read_text(encoding="utf-8")
+for required_text in [
+    '#0D9488',
+    '#4F46E5',
+    'android:viewportWidth="64"',
+    'android:viewportHeight="64"',
+    'M17.5,16H23.5',
+    'M40.5,16H46.5',
+    'M27,27H37',
+    'M37,37H27',
+]:
+    if required_text not in icon:
+        errors.append(f"Android File Manager icon derivative drifted: {required_text!r}")
 
 architecture = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
 for required_text in [

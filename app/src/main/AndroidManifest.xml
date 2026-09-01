@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
         android:allowBackup="false"
+        android:icon="@drawable/goreecloud_file_manager_icon"
         android:label="${appLabel}"
         android:supportsRtl="true"
         android:theme="@style/Theme.GoreeCloudFileManager">
