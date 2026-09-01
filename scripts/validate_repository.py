@@ -11,6 +11,7 @@ required_root = [
     "FEATURES.md",
     "BENEFITS.md",
     "COMPETITIVE-OBJECTIVES.md",
+    "BRANDING.md",
     "ARCHITECTURE.md",
     "CONFORMANCE.md",
     "USER-MANUAL.md",
@@ -61,6 +62,18 @@ for pattern in [
     if re.search(pattern, readme, flags=re.IGNORECASE):
         errors.append("README contains an unverified positive Wardveil protection claim")
         break
+
+branding = (ROOT / "BRANDING.md").read_text(encoding="utf-8")
+for required_text in [
+    "GoreeCloud/goreecloud-branding-assets",
+    "products/file-manager/app-icon.svg",
+    "concepts/product-identity-round-1/file-manager.svg",
+    "does **not yet have approved canonical product artwork**",
+    "android:icon",
+    "GoreeCloud Drive",
+]:
+    if required_text not in branding:
+        errors.append(f"BRANDING.md missing required identity boundary: {required_text!r}")
 
 architecture = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
 for required_text in [
