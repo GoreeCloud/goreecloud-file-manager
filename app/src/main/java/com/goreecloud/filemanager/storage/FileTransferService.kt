@@ -6,6 +6,9 @@ import com.goreecloud.filemanager.model.FileEntry
 import com.goreecloud.filemanager.model.FileItemType
 import com.goreecloud.filemanager.model.FileOperationOutcome
 import com.goreecloud.filemanager.model.FileOperationResult
+import java.io.InputStream
+import java.io.OutputStream
+import java.security.MessageDigest
 
 class FileTransferService(
     private val providers: Map<String, FileStorageProvider>,
@@ -66,20 +69,17 @@ class FileTransferService(
                 "The destination file was created but its identity could not be verified.",
             )
 
-        val copyFailure = runCatching {
+        val sourceDigest = runCatching {
             val input = sourceProvider.openRead(source)
                 ?: error("source stream unavailable")
             val output = destinationProvider.openWrite(createdEntry)
                 ?: error("destination stream unavailable")
             input.use { reader ->
                 output.use { writer ->
-                    reader.copyTo(writer)
-                    writer.flush()
+                    copyWithSha256(reader, writer)
                 }
             }
-        }.exceptionOrNull()
-
-        if (copyFailure != null) {
+        }.getOrElse {
             destinationProvider.delete(createdEntry)
             return FileOperationResult(
                 FileOperationOutcome.FAILED,
@@ -99,6 +99,20 @@ class FileTransferService(
             return FileOperationResult(
                 FileOperationOutcome.FAILED,
                 "The destination file could not be verified after transfer.",
+            )
+        }
+
+        val destinationDigest = runCatching {
+            val input = destinationProvider.openRead(verifiedEntry)
+                ?: error("destination verification stream unavailable")
+            input.use(::sha256)
+        }.getOrNull()
+
+        if (destinationDigest == null || !sourceDigest.contentEquals(destinationDigest)) {
+            destinationProvider.delete(verifiedEntry)
+            return FileOperationResult(
+                FileOperationOutcome.FAILED,
+                "The destination failed SHA-256 integrity verification and was removed when possible.",
             )
         }
 
@@ -124,6 +138,32 @@ class FileTransferService(
             "Moved ${source.displayName} to ${verifiedEntry.displayName}.",
             verifiedEntry,
         )
+    }
+
+    private fun copyWithSha256(input: InputStream, output: OutputStream): ByteArray {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        while (true) {
+            val read = input.read(buffer)
+            if (read < 0) break
+            if (read == 0) continue
+            digest.update(buffer, 0, read)
+            output.write(buffer, 0, read)
+        }
+        output.flush()
+        return digest.digest()
+    }
+
+    private fun sha256(input: InputStream): ByteArray {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        while (true) {
+            val read = input.read(buffer)
+            if (read < 0) break
+            if (read == 0) continue
+            digest.update(buffer, 0, read)
+        }
+        return digest.digest()
     }
 
     private fun unavailableProvider(providerId: String) = FileOperationResult(
