@@ -49,6 +49,21 @@ class FileTransferServiceTest {
     }
 
     @Test
+    fun moveRejectsSameSizeCorruptionBeforeDeletingSource() {
+        val source = MemoryProvider("source")
+        val destination = MemoryProvider("destination", corruptOnWrite = true)
+        val sourceEntry = source.put("report.txt", "GoreeCloud".toByteArray())
+        val service = FileTransferService(mapOf(source.descriptor.id to source, destination.descriptor.id to destination))
+
+        val result = service.move(sourceEntry, destination.root, "moved.txt")
+
+        assertEquals(FileOperationOutcome.FAILED, result.outcome)
+        assertTrue(result.message.contains("SHA-256"))
+        assertTrue(source.exists("report.txt"))
+        assertFalse(destination.exists("moved.txt"))
+    }
+
+    @Test
     fun moveKeepsBothFilesWhenSourceDeletionFails() {
         val source = MemoryProvider("source", failDelete = true)
         val destination = MemoryProvider("destination")
@@ -65,6 +80,7 @@ class FileTransferServiceTest {
     private class MemoryProvider(
         id: String,
         private val failDelete: Boolean = false,
+        private val corruptOnWrite: Boolean = false,
     ) : FileStorageProvider {
         private val files = linkedMapOf<String, ByteArray>()
 
@@ -120,7 +136,11 @@ class FileTransferServiceTest {
             return object : ByteArrayOutputStream() {
                 override fun close() {
                     super.close()
-                    files[entry.resourceId] = toByteArray()
+                    val written = toByteArray()
+                    if (corruptOnWrite && written.isNotEmpty()) {
+                        written[0] = (written[0].toInt() xor 0x01).toByte()
+                    }
+                    files[entry.resourceId] = written
                 }
             }
         }
