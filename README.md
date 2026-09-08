@@ -14,7 +14,8 @@ The repository currently provides:
 - browsing of app-private storage and user-selected Android document trees without requesting unrestricted filesystem access;
 - provider-scoped resource identity and explicit per-item capabilities;
 - verified create-folder, rename, and delete operations for supported providers;
-- deliberate refusal of recursive folder deletion in this development slice;
+- a provider-generic regular-file copy/move transfer service that streams source bytes, publishes through the destination provider, reopens the destination, and requires matching SHA-256 content before a move may remove its source;
+- deliberate refusal of recursive folder deletion and recursive folder transfer in this development slice;
 - operation-result messaging and refresh-after-operation reconciliation;
 - Home and Browse surfaces with compact/adaptive navigation behavior;
 - a unified file-status domain model that keeps synchronization, backup/recoverability, privacy, security, and continuity state separate;
@@ -23,7 +24,7 @@ The repository currently provides:
 - repository validation, Android unit tests, lint, and development APK assembly in CI;
 - a repository `USER-MANUAL.md` synchronized with the central GoreeCloud User Manual requirement.
 
-The current storage slice remains intentionally bounded. Copy, move, duplicate, file creation, multi-selection, unified Trash/recovery, removable-storage-specific controls, network locations, GoreeCloud Drive, cross-device state, search/indexing, previews, sharing, and accepted platform-service runtime integrations remain implementation work.
+The current storage slice remains intentionally bounded. The backend has regular-file copy/move primitives, but the Android UI does not yet expose destination-selection copy/move workflows. Duplicate, user-facing file creation, multi-selection, unified Trash/recovery, recursive folder transfer, removable-storage-specific controls, network locations, GoreeCloud Drive, cross-device state, search/indexing, previews, sharing, and accepted platform-service runtime integrations remain implementation work.
 
 ## Authorized Android storage model
 
@@ -33,7 +34,7 @@ The built-in app-private provider is confined to the application's own private f
 
 A selected tree is treated as an Android document provider, not blindly labeled local disk storage. It may represent local storage, removable media, or another DocumentsProvider. Every visible item retains provider-scoped identity and capability state.
 
-Mutation actions are capability-driven. File Manager exposes create-folder, rename, or delete only when both authorization and the backing provider report support. Recursive folder deletion is intentionally rejected until unified Trash, backup/recovery, Everkeep, and destructive-operation safeguards are implemented and accepted.
+Mutation actions are capability-driven. File Manager exposes create-folder, rename, or delete only when both authorization and the backing provider report support. Recursive folder deletion is intentionally rejected until unified Trash, backup/recovery, Everkeep, and destructive-operation safeguards are implemented and accepted. Copy/move remains service-level foundation only until destination selection, user-facing conflict handling, operation UX, and the applicable destructive/recovery safeguards are connected to the UI.
 
 ## Product direction
 
