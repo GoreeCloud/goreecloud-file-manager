@@ -1,0 +1,160 @@
+schema_version: "0.2"
+
+component:
+  type: application
+  id: goreecloud-file-manager
+  product_name: GoreeCloud File Manager
+  repository: GoreeCloud/goreecloud-file-manager
+
+lifecycle: development
+version: "0.1.0-dev"
+
+supported_platforms:
+  - android
+
+api:
+  versions: []
+  endpoints: []
+
+platform_systems:
+  manager:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - app/src/main/java/com/goreecloud/filemanager/platform/PlatformAuthorities.kt
+    notes: File Manager has explicit platform-authority adapter boundaries, but accepted GoreeCloud Manager registration, administrative visibility, lifecycle control, and runtime acceptance are not established.
+  privacy_shield:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - ARCHITECTURE.md
+      - CONFORMANCE.md
+      - app/src/main/java/com/goreecloud/filemanager/platform/PlatformAuthorities.kt
+      - app/src/main/java/com/goreecloud/filemanager/storage/SafTreeFileRepository.kt
+    notes: Current Android storage access is user-authorized through the Storage Access Framework and avoids unrestricted filesystem permission, and missing privacy evidence remains explicit rather than reassuring. Accepted Privacy Shield policy, privacy-state producer integration, minimization/retention authority, and runtime acceptance are not established.
+  wardveil_security:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - ARCHITECTURE.md
+      - CONFORMANCE.md
+      - app/src/main/java/com/goreecloud/filemanager/platform/PlatformAuthorities.kt
+      - app/src/main/java/com/goreecloud/filemanager/storage/FileTransferService.kt
+    notes: File Manager separates security evidence from ordinary file state and cross-provider transfer integrity uses SHA-256 verification, but authoritative Wardveil Security producer integration, applicable content scanning/protection, destructive-operation security policy, and runtime acceptance are not established.
+  everkeep:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - ARCHITECTURE.md
+      - CONFORMANCE.md
+      - app/src/main/java/com/goreecloud/filemanager/platform/PlatformAuthorities.kt
+    notes: The domain model keeps synchronization, backup/recoverability, and continuity distinct and recursive folder deletion remains refused while recovery safeguards are incomplete. Accepted Everkeep backup/recovery evidence, Trash/recovery integration, clean-target restore, continuity, and portability acceptance are not established.
+  glaze_ui:
+    result: applicable-migration-required
+    version: null
+    evidence:
+      - README.md
+      - CONFORMANCE.md
+      - app/src/main/java/com/goreecloud/filemanager/ui/GlazeFoundation.kt
+      - app/src/main/java/com/goreecloud/filemanager/ui/FileManagerApp.kt
+    notes: The native Compose application has a repository-local Glaze mapping foundation, but authoritative documentation still targets superseded Glaze UI 2.0.0. File Manager must explicitly reconcile to governed GLAZE UI V1.1 / 1.1.0 and complete application-specific rendered, accessibility, resilience, adaptive/form-factor, representative-device, and Human Visual Excellence acceptance.
+  mesh:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - ARCHITECTURE.md
+      - app/src/main/java/com/goreecloud/filemanager/platform/PlatformAuthorities.kt
+    notes: GoreeCloud Mesh coordination is represented only by an application adapter boundary. Canonical registration, capability publication, producer evidence, event contracts, and runtime acceptance are not established.
+    capabilities: []
+    dependencies: []
+    published_events: []
+    consumed_events: []
+  identity:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - ARCHITECTURE.md
+      - app/src/main/java/com/goreecloud/filemanager/platform/PlatformAuthorities.kt
+    notes: Provider-scoped file identity and Android URI authorization exist, but production GoreeCloud Identity account/session/device identity, ownership/access producer integration, and acceptance are not established.
+
+health:
+  health_endpoint: null
+  readiness_endpoint: null
+
+continuity:
+  backup:
+    required: true
+    requirements:
+      - Define the approved File Manager-owned durable-state backup scope separately from files owned by external providers and from backups owned by GoreeCloud Backup or Everkeep.
+      - Preserve the rule that synchronized copies and provider duplicates do not become recovery evidence without authoritative backup/recoverability state.
+      - Exclude transient SAF operation state, temporary transfer buffers, credentials, provider secrets, and unrelated platform state from ordinary backup scope.
+  restore:
+    required: true
+    requirements:
+      - Establish accepted restoration of File Manager-owned preferences, authorized-provider configuration where safely reconstructible, and other approved application state without fabricating Android URI grants on a clean target.
+      - Define unified Trash/recovery and destructive-operation rollback behavior before recursive deletion or broad destructive workflows are enabled.
+      - Revalidate applicable Privacy Shield, Wardveil Security, Identity, and provider authorization after restore rather than treating historical state as current authority.
+  export:
+    required: true
+    requirements:
+      - Export only File Manager-owned portable configuration and metadata that the application is authorized to disclose; provider-owned file bytes remain governed by the source provider and user action.
+      - Preserve explicit provider identity and capability boundaries so export does not imply broader storage authority.
+      - Keep credentials, URI grants, security tokens, private platform evidence, and unrelated provider state out of portable output unless separately approved.
+  portability:
+    required: true
+    requirements:
+      - Preserve provider-scoped resource identity, integrity metadata, operation provenance, and applicable user preferences where portable.
+      - Treat Android persisted URI permissions as device-specific authorization that must be re-established rather than copied as portable credentials.
+      - Define cross-device/provider conflict, unavailable-provider, duplicate, move/copy, Trash, and recovery behavior before product-wide portability is claimed.
+
+external_dependencies:
+  - name: Android platform
+    purpose: Application runtime, Storage Access Framework document-tree authorization, persisted URI permissions, DocumentsProvider interoperability, accessibility, and system file-selection UI.
+    required: true
+    version_constraint: ">=26"
+
+compatibility:
+  platform_contract: "0.2"
+  glaze_ui_required: "1.1.0"
+  requires:
+    - goreecloud-platform-contract==0.2
+    - glaze-ui==1.1.0
+    - android-api>=26
+  provides: []
+
+evidence:
+  acceptance_tests: []
+  release: []
+
+conformance:
+  status: nonconformant
+  validated_at: null
+  evidence:
+    - README.md
+    - ARCHITECTURE.md
+    - CONFORMANCE.md
+    - SPECIFICATIONS.md
+    - app/src/main/AndroidManifest.xml
+    - app/src/main/java/com/goreecloud/filemanager/model/FileModels.kt
+    - app/src/main/java/com/goreecloud/filemanager/platform/PlatformAuthorities.kt
+    - app/src/main/java/com/goreecloud/filemanager/storage/FileStorageProvider.kt
+    - app/src/main/java/com/goreecloud/filemanager/storage/FileTransferService.kt
+    - app/src/main/java/com/goreecloud/filemanager/storage/LocalFileRepository.kt
+    - app/src/main/java/com/goreecloud/filemanager/storage/SafTreeFileRepository.kt
+    - app/src/main/java/com/goreecloud/filemanager/ui/FileManagerApp.kt
+    - app/src/main/java/com/goreecloud/filemanager/ui/GlazeFoundation.kt
+  blockers:
+    - GoreeCloud Manager registration, administrative visibility, lifecycle integration, and acceptance are not established.
+    - Privacy Shield producer integration and accepted privacy authorization/minimization/retention behavior are not established.
+    - Wardveil Security producer integration and accepted file-security/destructive-operation policy are not established; SHA-256 transfer verification is integrity evidence only.
+    - Everkeep integration, unified Trash/recovery, backup/recoverability evidence, clean-target restore, rollback, and continuity acceptance are not established.
+    - Repository Glaze documentation targets superseded 2.0.0 and requires explicit migration to governed GLAZE UI V1.1 / 1.1.0 plus complete application-specific acceptance.
+    - GoreeCloud Mesh registration, capabilities/events, producer evidence, and runtime acceptance are not established.
+    - GoreeCloud Identity production account/session/device/ownership integration and acceptance are not established.
+    - Copy, move, duplicate, file creation, multi-selection, unified Trash, removable/network/Drive providers, previews, sharing, search/indexing, production signing, representative-device acceptance, release approval, Release Candidate entry, and Stable qualification remain outstanding.
