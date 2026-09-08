@@ -31,7 +31,7 @@ A file location, synchronized copy, historical version, backup copy, recovery po
 
 The built-in local provider is confined to the application's canonical private files root. Requests that canonicalize outside that root are rejected.
 
-Current implemented operations are list, create folder, rename, and delete. Recursive folder deletion is rejected.
+Current implemented provider operations include list, create file, create folder, rename, delete, read, and write primitives as applicable. Recursive folder deletion is rejected.
 
 ### User-authorized Android document trees
 
@@ -45,13 +45,17 @@ A selected document tree is not automatically classified as ordinary local disk 
 
 ## Current mutation baseline
 
-Create-folder, rename, and delete use typed `SUCCEEDED`, `REJECTED`, and `FAILED` outcomes.
+Create-folder, rename, delete, and regular-file transfer use typed `SUCCEEDED`, `REJECTED`, and `FAILED` outcomes.
 
 Operations must validate portable/safe names before mutation. Current shared validation rejects empty names, `.` and `..`, path separators, null characters, and names beyond the current 255-character portability limit. Providers may impose additional constraints.
 
+Regular-file copy/move is implemented as a provider-generic service across registered storage providers. The transfer service requires source `COPY` or `MOVE` capability and destination `CREATE_FILE` capability, rejects folder transfer, streams source bytes into the destination, computes SHA-256 over the exact source bytes written, reopens the published destination, computes a second SHA-256 digest, and accepts success only when both digests match. A size match alone is not sufficient integrity evidence. If verification fails, File Manager attempts to remove the destination. A move requests source deletion only after destination integrity has succeeded; if deletion then fails, the verified destination and original are both retained and the operation reports failure rather than fabricating a successful move.
+
+The regular-file transfer service is not yet wired into a user-facing Android destination-selection workflow. UI-level transfer conflict handling, operation progress/queueing, multi-selection, recursive folder transfer, and unified recovery/Trash behavior remain separate milestones.
+
 After mutation attempts, File Manager refreshes provider state even when execution is uncertain so an error is not treated as proof that no side effect occurred.
 
-Recursive directory deletion is deliberately disabled until the application implements and accepts the required Trash, recovery, backup/Everkeep, durable operation, and destructive-action safeguards.
+Recursive directory deletion is deliberately disabled until the application implements and accepts the required Trash, recovery, backup/Everkeep, durable operation, and destructive-action safeguards. Recursive folder transfer is likewise not enabled by the current transfer service.
 
 ## Unified status model
 
@@ -83,6 +87,8 @@ Current code establishes separate typed state/evidence fields so one positive st
 9. Destructive operations require exact provider/resource identity, clear scope, capability/authorization checks, and safe failure behavior.
 10. An operation error cannot automatically be treated as proof that no side effect occurred; reconciliation may be required.
 11. Provider capability and GoreeCloud platform authority are separate concepts. A filesystem provider reporting delete support does not establish backup, privacy, or Wardveil approval.
+12. Matching file size is not proof of identical transfer content; successful regular-file transfer requires verified source/destination content integrity.
+13. A move must not delete its source until the destination has passed integrity verification.
 
 ## Mandatory platform targets
 
@@ -122,7 +128,8 @@ Mesh coordinates bounded file/service/device events and cross-application state 
 - app-private storage provider plus user-authorized Android document-tree provider
 - system `ACTION_OPEN_DOCUMENT_TREE` authorization path
 - persisted URI permissions rather than broad storage permission requests
-- capability-driven create-folder, rename, and non-recursive delete development slice
+- capability-driven create-folder, rename, and non-recursive delete UI slice
+- provider-generic regular-file copy/move service with post-publication SHA-256 destination verification and source-preserving move semantics
 
 ## Required documentation
 
@@ -132,4 +139,4 @@ Repository documentation includes README, specifications, features, benefits, co
 
 Source/build acceptance requires the exact revision to pass repository validation, unit tests, lint, Android assembly, package/application identity checks, and artifact publication.
 
-Passing those checks does not establish production acceptance, complete storage-provider acceptance, safe copy/move/Trash/recovery acceptance, Glaze UI consumer acceptance, Wardveil/Privacy Shield/Everkeep runtime acceptance, Identity/Mesh production integration, production signing/deployment, or Stable qualification.
+Passing those checks does not establish production acceptance, complete storage-provider acceptance, user-facing copy/move/Trash/recovery acceptance, recursive transfer acceptance, Glaze UI consumer acceptance, Wardveil/Privacy Shield/Everkeep runtime acceptance, Identity/Mesh production integration, production signing/deployment, or Stable qualification.
