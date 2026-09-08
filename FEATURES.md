@@ -15,13 +15,16 @@ This file distinguishes **implemented now** from **target product scope**. Plann
 - Folder creation in app-private storage and supported Android document-tree providers.
 - Rename in app-private storage and supported Android document-tree providers.
 - Delete in app-private storage and supported Android document-tree providers, with recursive folder deletion deliberately refused.
+- Provider-generic regular-file copy/move service across registered providers.
+- Streaming SHA-256 verification of the exact source bytes written plus a destination reopen/readback digest before copy success is accepted.
+- Move safety that preserves the source until destination integrity is verified; same-size corruption is rejected and the bad destination is removed when possible.
 - File/folder metadata for name, size, modification time, item type, provider identity, and location kind where available.
 - Operation outcomes that distinguish success, rejection, and failure and refresh provider state after mutation attempts.
 - File-name validation for basic path safety and cross-provider portability.
 - Typed synchronization, backup, continuity, privacy, security, identity, and coordination evidence states.
 - Explicit unknown/unavailable states.
 - First-party platform adapter interfaces for Drive, Sync, Backup, Everkeep, Privacy Shield, Wardveil, Identity, and Mesh.
-- Unit tests for critical status-separation rules and app-private mutation/path-confinement behavior.
+- Unit tests for critical status-separation rules, app-private mutation/path-confinement behavior, and regular-file transfer integrity/failure handling.
 - Repository validation, lint, unit-test, and development APK CI workflow.
 - Required repository and central-user-manual documentation model.
 
@@ -29,7 +32,7 @@ This file distinguishes **implemented now** from **target product scope**. Plann
 
 Target capabilities include complete copy/move/duplicate/create/delete/restore operations; multi-selection; drag and drop; conflict handling; list/grid/gallery/column/detail views; breadcrumbs; tabs/windows/workspaces; removable and network storage specializations; archives; permissions; checksums; duplicate handling; transfer queues; Trash; offline files; and storage cleanup/intelligence.
 
-The current mutation slice is intentionally narrower than the target. It does not recursively delete folders, does not yet provide copy/move/duplicate/create-file workflows, and does not claim unified Trash or recovery semantics.
+The current mutation slice is intentionally narrower than the target. It has verified regular-file copy/move service primitives but does not yet expose destination-selection copy/move workflows in the Android UI, does not recursively transfer or delete folders, does not yet provide duplicate/create-file workflows, and does not claim unified Trash or recovery semantics.
 
 ## Target discovery and organization scope
 
@@ -56,4 +59,4 @@ Target platform experiences include a GoreeCloud-native file picker, save experi
 
 ## Not yet implemented or accepted
 
-The current application does **not** yet provide GoreeCloud Drive connectivity; real Sync/Backup/Everkeep/Privacy/Wardveil/Identity/Mesh runtime calls; universal indexing/search; copy/move/duplicate/create-file workflows; unified Trash/recovery; multi-selection; sharing; previews; network storage; removable-media-specific controls; system file-picker registration; complete current-Stable Glaze UI acceptance; production signing/deployment; or production/Stable acceptance.
+The current application does **not** yet provide GoreeCloud Drive connectivity; real Sync/Backup/Everkeep/Privacy/Wardveil/Identity/Mesh runtime calls; universal indexing/search; user-facing destination-selection copy/move workflows; recursive folder transfer; duplicate/create-file workflows; unified Trash/recovery; multi-selection; sharing; previews; network storage; removable-media-specific controls; system file-picker registration; complete current-Stable Glaze UI acceptance; production signing/deployment; or production/Stable acceptance.
