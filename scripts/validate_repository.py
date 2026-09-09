@@ -17,23 +17,47 @@ required_root = [
     ".gitignore",
     ".editorconfig",
     "goreecloud.platform.yaml",
+    "settings.gradle.kts",
+    "build.gradle.kts",
+    "app/build.gradle.kts",
+    "core/build.gradle.kts",
 ]
 required_source = [
     "app/src/main/AndroidManifest.xml",
     "app/src/main/res/drawable/goreecloud_file_manager_icon.xml",
     "app/src/main/java/com/goreecloud/filemanager/MainActivity.kt",
-    "app/src/main/java/com/goreecloud/filemanager/model/FileModels.kt",
-    "app/src/main/java/com/goreecloud/filemanager/platform/PlatformAuthorities.kt",
-    "app/src/main/java/com/goreecloud/filemanager/storage/FileStorageProvider.kt",
     "app/src/main/java/com/goreecloud/filemanager/storage/LocalFileRepository.kt",
     "app/src/main/java/com/goreecloud/filemanager/storage/SafTreeFileRepository.kt",
     "app/src/main/java/com/goreecloud/filemanager/ui/FileManagerApp.kt",
+    "app/src/test/java/com/goreecloud/filemanager/storage/LocalFileRepositoryTest.kt",
+    "core/src/main/kotlin/com/goreecloud/filemanager/model/FileModels.kt",
+    "core/src/main/kotlin/com/goreecloud/filemanager/platform/PlatformAuthorities.kt",
+    "core/src/main/kotlin/com/goreecloud/filemanager/storage/FileStorageProvider.kt",
+    "core/src/main/kotlin/com/goreecloud/filemanager/storage/FileTransferService.kt",
+    "core/src/test/kotlin/com/goreecloud/filemanager/model/FileStatusTest.kt",
+    "core/src/test/kotlin/com/goreecloud/filemanager/storage/FileTransferServiceTest.kt",
 ]
 
 errors = []
 for relative in required_root + required_source:
     if not (ROOT / relative).is_file():
         errors.append(f"missing required file: {relative}")
+
+settings = (ROOT / "settings.gradle.kts").read_text(encoding="utf-8")
+if 'include(":app", ":core")' not in settings:
+    errors.append("settings.gradle.kts must include both :app and :core")
+
+app_gradle = (ROOT / "app/build.gradle.kts").read_text(encoding="utf-8")
+if 'implementation(project(":core"))' not in app_gradle:
+    errors.append("Android app must depend on the shared :core module")
+
+core_gradle = (ROOT / "core/build.gradle.kts").read_text(encoding="utf-8")
+for required_text in [
+    'id("org.jetbrains.kotlin.jvm")',
+    "jvmToolchain(17)",
+]:
+    if required_text not in core_gradle:
+        errors.append(f"core/build.gradle.kts missing shared-core build requirement: {required_text!r}")
 
 readme = (ROOT / "README.md").read_text(encoding="utf-8")
 for required_text in [
@@ -119,7 +143,7 @@ for required_text in [
     if required_text not in specifications:
         errors.append(f"SPECIFICATIONS.md missing required platform baseline: {required_text!r}")
 
-models = (ROOT / "app/src/main/java/com/goreecloud/filemanager/model/FileModels.kt").read_text(encoding="utf-8")
+models = (ROOT / "core/src/main/kotlin/com/goreecloud/filemanager/model/FileModels.kt").read_text(encoding="utf-8")
 for token in [
     "SyncState",
     "BackupState",
@@ -131,7 +155,26 @@ for token in [
     "StorageProviderDescriptor",
 ]:
     if token not in models:
-        errors.append(f"unified model missing {token}")
+        errors.append(f"shared core model missing {token}")
+
+provider_contract = (ROOT / "core/src/main/kotlin/com/goreecloud/filemanager/storage/FileStorageProvider.kt").read_text(encoding="utf-8")
+for required_text in [
+    "interface FileStorageProvider",
+    "object FileNamePolicy",
+    "fun FileEntry.asBrowserLocation",
+]:
+    if required_text not in provider_contract:
+        errors.append(f"shared core provider contract missing {required_text!r}")
+
+transfer_service = (ROOT / "core/src/main/kotlin/com/goreecloud/filemanager/storage/FileTransferService.kt").read_text(encoding="utf-8")
+for required_text in [
+    'MessageDigest.getInstance("SHA-256")',
+    "if (!deleteSource)",
+    "val delete = sourceProvider.delete(source)",
+    "Both files were kept.",
+]:
+    if required_text not in transfer_service:
+        errors.append(f"shared transfer service missing safety requirement: {required_text!r}")
 
 manual = (ROOT / "USER-MANUAL.md").read_text(encoding="utf-8")
 for required_text in [
