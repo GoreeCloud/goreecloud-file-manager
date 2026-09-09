@@ -6,13 +6,24 @@ import kotlin.system.exitProcess
 /**
  * Non-production Linux development harness.
  *
- * It accepts exactly one explicit filesystem root and performs a read-only listing through the
- * Linux provider. This exists to validate the Linux application/provider boundary and packaged JVM
- * distribution before a Glaze UI desktop shell is selected and accepted.
+ * An explicit root performs a read-only listing through LinuxFileRepository. `--locations` performs
+ * read-only XDG/mount candidate discovery without constructing a provider or granting file access.
+ * This exists to validate Linux application/provider boundaries before a Glaze UI desktop shell and
+ * accepted package are implemented.
  */
 fun main(args: Array<String>) {
+    if (args.size == 1 && args.single() == "--locations") {
+        println("GoreeCloud File Manager — Linux development location discovery")
+        println("Discovery only: candidates require explicit selection; no provider authorization is granted.")
+        LinuxLocationDiscovery().discover().forEach { candidate ->
+            val filesystem = candidate.filesystemType?.let { "\t$it" }.orEmpty()
+            println("${candidate.kind}\t${candidate.displayName}\t${candidate.path}$filesystem")
+        }
+        return
+    }
+
     if (args.size != 1) {
-        System.err.println("Usage: linux-client <explicit-root-directory>")
+        System.err.println("Usage: linux-client <explicit-root-directory> | --locations")
         System.err.println("This development harness is read-only and is not the production Linux File Manager.")
         exitProcess(2)
     }

@@ -10,6 +10,7 @@ required_root = [
     "README.md",
     "SPECIFICATIONS.md",
     "FEATURES.md",
+    "FEATURE-ROADMAP.md",
     "BENEFITS.md",
     "COMPETITIVE-OBJECTIVES.md",
     "BRANDING.md",
@@ -42,8 +43,10 @@ required_source = [
     "core/src/test/kotlin/com/goreecloud/filemanager/model/FileStatusTest.kt",
     "core/src/test/kotlin/com/goreecloud/filemanager/storage/FileTransferServiceTest.kt",
     "linux-client/src/main/kotlin/com/goreecloud/filemanager/linux/LinuxFileRepository.kt",
+    "linux-client/src/main/kotlin/com/goreecloud/filemanager/linux/LinuxLocationDiscovery.kt",
     "linux-client/src/main/kotlin/com/goreecloud/filemanager/linux/LinuxDevelopmentMain.kt",
     "linux-client/src/test/kotlin/com/goreecloud/filemanager/linux/LinuxFileRepositoryTest.kt",
+    "linux-client/src/test/kotlin/com/goreecloud/filemanager/linux/LinuxLocationDiscoveryTest.kt",
 ]
 
 errors = []
@@ -60,10 +63,7 @@ if 'implementation(project(":core"))' not in app_gradle:
     errors.append("Android app must depend on the shared :core module")
 
 core_gradle = (ROOT / "core/build.gradle.kts").read_text(encoding="utf-8")
-for required_text in [
-    'id("org.jetbrains.kotlin.jvm")',
-    "jvmToolchain(17)",
-]:
+for required_text in ['id("org.jetbrains.kotlin.jvm")', "jvmToolchain(17)"]:
     if required_text not in core_gradle:
         errors.append(f"core/build.gradle.kts missing shared-core build requirement: {required_text!r}")
 
@@ -100,15 +100,9 @@ for required_text in [
         errors.append(f"Linux workflow missing development validation boundary: {required_text!r}")
 
 platform_workflow = (ROOT / ".github/workflows/platform-contract.yml").read_text(encoding="utf-8")
-required_platform_pin = (
-    "GoreeCloud/GoreeCloud/.github/workflows/reusable-platform-manifest.yml@"
-    + PLATFORM_CONTRACT_REVISION
-)
+required_platform_pin = "GoreeCloud/GoreeCloud/.github/workflows/reusable-platform-manifest.yml@" + PLATFORM_CONTRACT_REVISION
 if required_platform_pin not in platform_workflow:
-    errors.append(
-        "Platform Contract workflow must pin the accepted Glaze V1.3 central validator revision "
-        + PLATFORM_CONTRACT_REVISION
-    )
+    errors.append("Platform Contract workflow must pin the accepted Glaze V1.3 central validator revision " + PLATFORM_CONTRACT_REVISION)
 
 readme = (ROOT / "README.md").read_text(encoding="utf-8")
 for required_text in [
@@ -125,21 +119,25 @@ for required_text in [
     if required_text not in readme:
         errors.append(f"README missing required current-state text: {required_text!r}")
 
-for misleading in [
-    "hundreds of built-in features",
-    "production ready",
-]:
+for misleading in ["hundreds of built-in features", "production ready"]:
     if misleading.lower() in readme.lower():
         errors.append(f"README contains prohibited/unverified broad claim: {misleading!r}")
 
-for pattern in [
-    r"\bis protected by wardveil\b",
-    r"\bwardveil[- ]protected\b",
-    r"\bfully protected by wardveil\b",
-]:
+for pattern in [r"\bis protected by wardveil\b", r"\bwardveil[- ]protected\b", r"\bfully protected by wardveil\b"]:
     if re.search(pattern, readme, flags=re.IGNORECASE):
         errors.append("README contains an unverified positive Wardveil protection claim")
         break
+
+roadmap = (ROOT / "FEATURE-ROADMAP.md").read_text(encoding="utf-8")
+for required_text in [
+    "GoreeCloud/Feature Roadmap/GoreeCloud File Manager/FEATURE-ROADMAP.docx",
+    "FR-012",
+    "Linux desktop location discovery",
+    "discovery separate from explicit provider authorization",
+    "supported_platforms",
+]:
+    if required_text not in roadmap:
+        errors.append(f"FEATURE-ROADMAP.md missing roadmap/governance requirement: {required_text!r}")
 
 branding = (ROOT / "BRANDING.md").read_text(encoding="utf-8")
 for required_text in [
@@ -159,138 +157,90 @@ if 'android:icon="@drawable/goreecloud_file_manager_icon"' not in manifest:
     errors.append("Android manifest does not consume the approved File Manager icon derivative")
 
 icon = (ROOT / "app/src/main/res/drawable/goreecloud_file_manager_icon.xml").read_text(encoding="utf-8")
-for required_text in [
-    '#0D9488',
-    '#4F46E5',
-    'android:viewportWidth="64"',
-    'android:viewportHeight="64"',
-    'M17.5,16H23.5',
-    'M40.5,16H46.5',
-    'M27,27H37',
-    'M37,37H27',
-]:
+for required_text in ['#0D9488', '#4F46E5', 'android:viewportWidth="64"', 'android:viewportHeight="64"', 'M17.5,16H23.5', 'M40.5,16H46.5', 'M27,27H37', 'M37,37H27']:
     if required_text not in icon:
         errors.append(f"Android File Manager icon derivative drifted: {required_text!r}")
 
 architecture = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
-for required_text in [
-    "Sync versus backup",
-    "User-authorized Android document-tree provider",
-    "recursive folder deletion",
-    "Linux client architecture",
-    "Cross-platform resource identity",
-    "LinuxFileRepository",
-]:
+for required_text in ["Sync versus backup", "User-authorized Android document-tree provider", "recursive folder deletion", "Linux client architecture", "Cross-platform resource identity", "LinuxFileRepository"]:
     if required_text.lower() not in architecture.lower():
         errors.append(f"ARCHITECTURE.md missing required architecture invariant: {required_text!r}")
 
 specifications = (ROOT / "SPECIFICATIONS.md").read_text(encoding="utf-8")
-for required_text in [
-    "Required native platforms",
-    "Linux and Android",
-    "Linux implementation status",
-    "Cross-platform resource identity",
-    "GLAZE UI V1.3 / 1.3.0",
-    "Current Linux development storage baseline",
-]:
+for required_text in ["Required native platforms", "Linux and Android", "Linux implementation status", "Cross-platform resource identity", "GLAZE UI V1.3 / 1.3.0", "Current Linux development storage baseline"]:
     if required_text not in specifications:
         errors.append(f"SPECIFICATIONS.md missing required platform baseline: {required_text!r}")
 
 models = (ROOT / "core/src/main/kotlin/com/goreecloud/filemanager/model/FileModels.kt").read_text(encoding="utf-8")
-for token in [
-    "SyncState",
-    "BackupState",
-    "PrivacyState",
-    "SecurityState",
-    "EvidenceState",
-    "FileCapability",
-    "FileOperationOutcome",
-    "StorageProviderDescriptor",
-    "SYMLINK",
-]:
+for token in ["SyncState", "BackupState", "PrivacyState", "SecurityState", "EvidenceState", "FileCapability", "FileOperationOutcome", "StorageProviderDescriptor", "SYMLINK"]:
     if token not in models:
         errors.append(f"shared core model missing {token}")
 
 provider_contract = (ROOT / "core/src/main/kotlin/com/goreecloud/filemanager/storage/FileStorageProvider.kt").read_text(encoding="utf-8")
-for required_text in [
-    "interface FileStorageProvider",
-    "object FileNamePolicy",
-    "fun FileEntry.asBrowserLocation",
-]:
+for required_text in ["interface FileStorageProvider", "object FileNamePolicy", "fun FileEntry.asBrowserLocation"]:
     if required_text not in provider_contract:
         errors.append(f"shared core provider contract missing {required_text!r}")
 
 transfer_service = (ROOT / "core/src/main/kotlin/com/goreecloud/filemanager/storage/FileTransferService.kt").read_text(encoding="utf-8")
-for required_text in [
-    'MessageDigest.getInstance("SHA-256")',
-    "if (!deleteSource)",
-    "val delete = sourceProvider.delete(source)",
-    "Both files were kept.",
-]:
+for required_text in ['MessageDigest.getInstance("SHA-256")', "if (!deleteSource)", "val delete = sourceProvider.delete(source)", "Both files were kept."]:
     if required_text not in transfer_service:
         errors.append(f"shared transfer service missing safety requirement: {required_text!r}")
 
 linux_provider = (ROOT / "linux-client/src/main/kotlin/com/goreecloud/filemanager/linux/LinuxFileRepository.kt").read_text(encoding="utf-8")
-for required_text in [
-    "LinkOption.NOFOLLOW_LINKS",
-    "FileItemType.SYMLINK",
-    "Resource escapes the selected Linux root.",
-    "Symbolic-link traversal is not enabled.",
-    "Mutations across a mount boundary are not enabled.",
-    "Recursive folder deletion is not enabled.",
-    "sameFileStore",
-]:
+for required_text in ["LinkOption.NOFOLLOW_LINKS", "FileItemType.SYMLINK", "Resource escapes the selected Linux root.", "Symbolic-link traversal is not enabled.", "Mutations across a mount boundary are not enabled.", "Recursive folder deletion is not enabled.", "sameFileStore"]:
     if required_text not in linux_provider:
         errors.append(f"Linux provider missing filesystem safety requirement: {required_text!r}")
+
+linux_discovery = (ROOT / "linux-client/src/main/kotlin/com/goreecloud/filemanager/linux/LinuxLocationDiscovery.kt").read_text(encoding="utf-8")
+for required_text in [
+    "requiresExplicitSelection: Boolean = true",
+    "XDG_CONFIG_HOME",
+    "user-dirs.dirs",
+    "/proc/self/mountinfo",
+    "REMOVABLE_MEDIA_CANDIDATE",
+    "Discovery is intentionally separate from provider authorization",
+]:
+    if required_text not in linux_discovery:
+        errors.append(f"Linux location discovery missing safety/platform requirement: {required_text!r}")
 
 linux_harness = (ROOT / "linux-client/src/main/kotlin/com/goreecloud/filemanager/linux/LinuxDevelopmentMain.kt").read_text(encoding="utf-8")
 for required_text in [
     "Non-production Linux development harness",
     "explicit-root-directory",
+    "--locations",
+    "no provider authorization is granted",
     "production desktop UI and package acceptance are pending",
 ]:
     if required_text not in linux_harness:
         errors.append(f"Linux development harness missing truthful boundary: {required_text!r}")
 
 linux_tests = (ROOT / "linux-client/src/test/kotlin/com/goreecloud/filemanager/linux/LinuxFileRepositoryTest.kt").read_text(encoding="utf-8")
-for required_text in [
-    "listShowsSymlinkWithoutGrantingTraversalCapabilities",
-    "listRejectsProviderRelativeTraversalOutsideSelectedRoot",
-    "createRenameAndDeleteRemainNonRecursive",
-    "sharedTransferCopiesAndMovesBetweenLinuxProvidersWithIntegrityVerification",
-]:
+for required_text in ["listShowsSymlinkWithoutGrantingTraversalCapabilities", "listRejectsProviderRelativeTraversalOutsideSelectedRoot", "createRenameAndDeleteRemainNonRecursive", "sharedTransferCopiesAndMovesBetweenLinuxProvidersWithIntegrityVerification"]:
     if required_text not in linux_tests:
         errors.append(f"Linux provider tests missing safety/transfer case: {required_text!r}")
 
-manual = (ROOT / "USER-MANUAL.md").read_text(encoding="utf-8")
+linux_location_tests = (ROOT / "linux-client/src/test/kotlin/com/goreecloud/filemanager/linux/LinuxLocationDiscoveryTest.kt").read_text(encoding="utf-8")
 for required_text in [
-    "Adding an Android storage location",
-    "Creating folders",
-    "Renaming",
-    "Deleting files and folders",
-    "not Stable or production accepted",
-    "Linux and Android",
-    "Linux development harness",
+    "xdgDiscoveryExpandsOnlyHomeAndAbsoluteValuesWithoutExecutingShellText",
+    "relativeXdgConfigHomeFallsBackToHomeConfig",
+    "mountInfoDiscoveryDecodesEscapesAndUsesCandidateLanguageForRemovablePaths",
+    "parsersIgnoreMalformedOrNonAbsoluteMountRecords",
 ]:
+    if required_text not in linux_location_tests:
+        errors.append(f"Linux location-discovery tests missing required case: {required_text!r}")
+
+manual = (ROOT / "USER-MANUAL.md").read_text(encoding="utf-8")
+for required_text in ["Adding an Android storage location", "Creating folders", "Renaming", "Deleting files and folders", "not Stable or production accepted", "Linux and Android", "Linux development harness"]:
     if required_text.lower() not in manual.lower():
         errors.append(f"USER-MANUAL.md missing current user behavior: {required_text!r}")
 
 conformance = (ROOT / "CONFORMANCE.md").read_text(encoding="utf-8")
-for required_text in [
-    "bounded Linux-provider development",
-    "goreecloud.platform.yaml",
-    "Platform Contract workflow remains an independent required gate",
-]:
+for required_text in ["bounded Linux-provider development", "goreecloud.platform.yaml", "Platform Contract workflow remains an independent required gate"]:
     if required_text.lower() not in conformance.lower():
         errors.append(f"CONFORMANCE.md missing current acceptance boundary: {required_text!r}")
 
 platform_contract = (ROOT / "goreecloud.platform.yaml").read_text(encoding="utf-8")
-for required_text in [
-    'glaze_ui_required: "1.3.0"',
-    'glaze-ui==1.3.0',
-    'supported_platforms:\n  - android',
-    'Linux is a required first-class File Manager target',
-]:
+for required_text in ['glaze_ui_required: "1.3.0"', 'glaze-ui==1.3.0', 'supported_platforms:\n  - android', 'Linux is a required first-class File Manager target']:
     if required_text not in platform_contract:
         errors.append(f"goreecloud.platform.yaml missing current platform truth: {required_text!r}")
 

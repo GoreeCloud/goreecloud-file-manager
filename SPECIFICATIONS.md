@@ -5,11 +5,11 @@
 - **Project:** GoreeCloud File Manager
 - **Repository:** `GoreeCloud/goreecloud-file-manager`
 - **Development model:** original GoreeCloud-owned native application
-- **Current lifecycle:** active Android development / shared-core extraction / bounded Linux provider development
+- **Current lifecycle:** active Android development / shared-core foundation / bounded Linux provider and location-discovery development
 - **Stable eligibility:** false until required implementation and acceptance gates complete
 - **Required native platforms:** Linux and Android
 - **Current implemented native user-facing client:** Android
-- **Linux implementation status:** shared JVM core plus bounded local-filesystem provider and non-production development harness are present; exact-head source/build validation, desktop UI, production packaging, supported-runtime acceptance, and Stable acceptance remain separate gates
+- **Linux implementation status:** shared JVM core, bounded local-filesystem provider, read-only Home/XDG/mount location-candidate discovery, and non-production development harness are present; exact-head source/build validation, desktop UI, production packaging, supported-runtime acceptance, and Stable acceptance remain separate gates
 - **Production application ID:** `com.goreecloud.filemanager`
 - **Development application ID:** `com.goreecloud.filemanager.dev`
 
@@ -17,7 +17,7 @@
 
 GoreeCloud File Manager is the primary file-management surface for supported GoreeCloud environments. Its target responsibility includes browsing, organization, operations, search, previews, metadata, storage locations, sharing, synchronization visibility/control, backup and recovery visibility/control, continuity/preservation state, privacy state, security state, identity/access state, device state, provenance, and cross-application file handoff.
 
-Linux and Android are both required first-class native product platforms. This is a product requirement, not a blanket implementation claim. Android is the current native user-facing application. The current Linux source establishes a development provider/application boundary and build harness, but not the accepted desktop experience or supported production platform.
+Linux and Android are both required first-class native product platforms. This is a product requirement, not a blanket implementation claim. Android is the current native user-facing application. The current Linux source establishes a development provider/application/location-discovery boundary and build harness, but not the accepted desktop experience or supported production platform.
 
 ## Required Linux and Android platform baseline
 
@@ -70,6 +70,8 @@ The architecture supports storage providers without collapsing their semantics i
 
 Every provider and visible resource uses provider-scoped identity. The application must not assume that a resource ID is an ordinary local path. Android Storage Access Framework resources use bounded document URIs; the current Linux development provider uses provider-relative path identity rooted at one selected directory; GoreeCloud Drive and network providers retain their own authoritative IDs.
 
+Linux location discovery is a separate pre-provider metadata layer. A discovered Home/XDG/mount path is a candidate for user presentation and explicit selection, not a provider-scoped file resource and not authorization to read or mutate it.
+
 A provider must expose only operations it can actually authorize and support. Per-resource capability concepts are `READ`, `LIST_CHILDREN`, `CREATE_FILE`, `CREATE_FOLDER`, `RENAME`, `DELETE`, `COPY`, and `MOVE`.
 
 A file location, synchronized copy, historical version, backup copy, recovery point, and preservation record are distinct states.
@@ -94,7 +96,7 @@ A selected document tree is not automatically classified as ordinary local disk 
 
 ## Current Linux development storage baseline
 
-The repository now contains `linux-client/src/main/kotlin/com/goreecloud/filemanager/linux/LinuxFileRepository.kt`, a deliberately bounded local-filesystem provider used by the non-production Linux development module.
+The repository contains `linux-client/src/main/kotlin/com/goreecloud/filemanager/linux/LinuxFileRepository.kt`, a deliberately bounded local-filesystem provider used by the non-production Linux development module.
 
 The current provider contract is narrower than the target desktop client:
 
@@ -112,9 +114,30 @@ The current provider contract is narrower than the target desktop client:
 - recursive folder copy/move remains rejected by the shared transfer service;
 - ordinary files can participate in the shared SHA-256-verified transfer service.
 
-This provider is a development foundation, not an authorization statement for the whole Linux filesystem. XDG discovery, automatic mount/removable-media discovery, ownership/ACL management, file associations/Open With, desktop Trash, drag-and-drop, clipboard integration, network locations, safe eject, desktop accessibility, and the native desktop Glaze UI remain separate milestones.
+This provider is a development foundation, not an authorization statement for the whole Linux filesystem. User-facing XDG navigation policy, mount/removable-media lifecycle and safe-eject controls, ownership/ACL management, file associations/Open With, desktop Trash, drag-and-drop, clipboard integration, network locations, desktop accessibility, and the native desktop Glaze UI remain separate milestones.
 
-`LinuxDevelopmentMain.kt` is a non-production command-line harness. It accepts exactly one explicit root and exposes read-only listing through the provider. It exists to exercise the Linux build/provider boundary before a production desktop toolkit and package format are accepted.
+`LinuxDevelopmentMain.kt` is a non-production command-line harness. Its explicit-root mode accepts exactly one selected root and exposes read-only listing through the provider. It exists to exercise the Linux build/provider boundary before a production desktop toolkit and package format are accepted.
+
+## Current Linux location-discovery baseline
+
+`LinuxLocationDiscovery.kt` adds a read-only pre-provider discovery layer for desktop location candidates. It does not construct `LinuxFileRepository`, grant file access, or establish provider authority.
+
+Current discovery behavior is intentionally conservative:
+
+- the current Home directory may be reported when it exists as a non-symlink directory;
+- recognized XDG user-directory keys are read from `user-dirs.dirs` under an absolute `XDG_CONFIG_HOME` or the `$HOME/.config` fallback;
+- XDG values expand only literal `$HOME` / `${HOME}` forms or accept explicit absolute paths;
+- relative paths, backtick expressions, `$()` expressions, and other unresolved variable forms are not executed or accepted as discovered locations;
+- candidate directories must exist and must not themselves be symbolic links under the current discovery check;
+- `/proc/self/mountinfo` is parsed for mounted-filesystem candidates, including Linux octal escape decoding;
+- ordinary pseudo/system-only filesystem types and mount surfaces are filtered from the user-facing candidate set;
+- paths under `/media` and `/run/media` are labeled `REMOVABLE_MEDIA_CANDIDATE`, which is not evidence that the underlying device is removable, safe to eject, or authorized for mutation;
+- duplicate normalized paths are collapsed;
+- every `LinuxLocationCandidate` sets `requiresExplicitSelection = true`.
+
+`LinuxDevelopmentMain --locations` exposes this data as a read-only development report. The report is not a supported location picker and does not automatically open, authorize, or mutate any candidate.
+
+The remaining desktop location milestone includes user-facing location selection/navigation, mount connect/disconnect/reconnect state, safe-eject implementation and evidence, device/removability authority, filesystem-specific capability policy, network-provider lifecycle behavior, and representative desktop-runtime acceptance.
 
 ## Current mutation baseline
 
@@ -169,6 +192,8 @@ Current shared code establishes separate typed state/evidence fields so one posi
 16. Linux symbolic links must not silently widen provider scope. The current development provider exposes them as non-traversable/non-mutable resources until a separately reviewed policy exists.
 17. A mount boundary must not silently widen destructive authority. The current Linux provider withholds mutations when the resource's `FileStore` differs from the selected root's store.
 18. Development distribution output is not equivalent to an accepted Linux package or supported-platform declaration.
+19. Linux location discovery is not filesystem authorization. A discovered candidate must not become provider access without explicit selection and provider construction.
+20. A removable-media candidate label is not evidence of hardware removability, ejectability, or safe-removal acceptance.
 
 ## Mandatory platform targets
 
@@ -214,7 +239,7 @@ Mesh coordinates bounded file/service/device events and cross-application state 
 
 ## Linux technical baseline and direction
 
-The current development source uses Kotlin/JVM 17 for `:linux-client` and consumes `:core`. The Gradle `application` plugin produces a JVM development distribution and start script for the explicit-root harness. This establishes a testable source/build boundary only; it does not choose or accept the production desktop UI toolkit.
+The current development source uses Kotlin/JVM 17 for `:linux-client` and consumes `:core`. The Gradle `application` plugin produces a JVM development distribution and start script for the explicit-root/`--locations` harness. This establishes a testable source/build boundary only; it does not choose or accept the production desktop UI toolkit.
 
 The exact supported distribution set and production package format remain unaccepted. A generated Gradle tar distribution is build evidence, not a supported Debian, Flatpak, AppImage, RPM, Snap, or other package.
 
@@ -225,17 +250,17 @@ Before Linux is listed as a currently supported platform in machine-readable con
 The repository defines independent exact-source workflows:
 
 - **Android foundation validation:** repository contract validation, shared-core tests, Android unit tests, Android lint, development APK assembly, APK identity verification, and artifact publication.
-- **Linux development validation:** repository contract validation, shared-core tests, Linux-provider tests, JVM development distribution build, explicit-root harness smoke test, distribution digest, and development-boundary evidence.
+- **Linux development validation:** repository contract validation, shared-core tests, Linux provider/location-discovery tests, JVM development distribution build, explicit-root harness smoke test, distribution digest, and development-boundary evidence.
 - **Platform Contract:** shared GoreeCloud manifest/conformance evaluation against the immutable central validator revision pinned by the repository workflow.
 
 Only completed workflow results for the exact candidate head count as that candidate's CI evidence. A prior green head does not validate a later revision.
 
 ## Required documentation
 
-Repository documentation includes README, specifications, features, benefits, competitive objectives, architecture, conformance, and `USER-MANUAL.md`. The corresponding current central user manual must be maintained in `GoreeCloud/User Manuals` and material project state must remain reconciled with the canonical Google Drive project specification and changelog.
+Repository documentation includes README, specifications, features, feature roadmap, benefits, competitive objectives, architecture, conformance, and `USER-MANUAL.md`. The corresponding central feature roadmap must be maintained in `GoreeCloud/Feature Roadmap/GoreeCloud File Manager`, the current central user manual must be maintained in `GoreeCloud/User Manuals`, and material project state must remain reconciled with the canonical Google Drive project specification and changelog.
 
 ## Acceptance boundary
 
 Source/build acceptance requires the exact revision to pass repository validation and all applicable platform-specific validation for the source present in that revision.
 
-Even successful Android and Linux development workflows do not establish production acceptance, complete storage-provider acceptance, user-facing copy/move/Trash/recovery acceptance, recursive transfer acceptance, current GLAZE UI V1.3 consumer acceptance, Wardveil/Privacy Shield/Everkeep runtime acceptance, Identity/Mesh production integration, Linux desktop UI/package acceptance, production signing/deployment, or Stable qualification.
+Even successful Android and Linux development workflows do not establish production acceptance, complete storage-provider acceptance, user-facing copy/move/Trash/recovery acceptance, recursive transfer acceptance, current GLAZE UI V1.3 consumer acceptance, Wardveil/Privacy Shield/Everkeep runtime acceptance, Identity/Mesh production integration, Linux desktop UI/location-navigation/mount-lifecycle/package acceptance, production signing/deployment, or Stable qualification.

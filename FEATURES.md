@@ -7,9 +7,9 @@ This file distinguishes **implemented now** from **target product scope**. Plann
 GoreeCloud File Manager is required to support **Linux and Android** as first-class native platforms.
 
 - Android is the current implemented native user-facing development client.
-- Linux now has a shared-core-consuming local-filesystem development provider and command-line build harness, but **does not yet have the accepted native desktop client, supported package, production runtime, or Stable acceptance**.
+- Linux now has a shared-core-consuming local-filesystem development provider, read-only desktop location-candidate discovery, and a command-line build harness, but **does not yet have the accepted native desktop client, supported package, production runtime, or Stable acceptance**.
 - Shared file/provider identity, capability semantics, transfer verification, evidence state, and GoreeCloud authority boundaries remain coherent across both code paths through the JVM `:core` module.
-- Linux-native product functionality still targets XDG locations, mounts/removable storage, Unix permissions/ownership, symbolic-link policy, file associations/Open With, drag-and-drop, keyboard/pointer workflows, windows/tabs/dual-pane behavior, and supported network/provider integration.
+- Linux-native product functionality still targets user-facing XDG location policy, mount/removable-media lifecycle and safe-eject behavior, Unix permissions/ownership, symbolic-link policy, file associations/Open With, drag-and-drop, keyboard/pointer workflows, windows/tabs/dual-pane behavior, and supported network/provider integration.
 - Android-native behavior retains scoped/least-privilege storage, user-authorized Android document trees, touch-first adaptive layouts, Android lifecycle/permission behavior, and platform Open/Save/share integration.
 
 ## Implemented shared/core foundation
@@ -59,8 +59,13 @@ The Linux code is deliberately narrower than the target desktop application.
 - Bounded create-file, create-folder, rename, ordinary-file read/write, shared verified copy/move participation, file delete, and empty-folder delete primitives where OS permissions and provider capabilities permit them.
 - Recursive folder deletion refused.
 - Recursive folder transfer refused by the shared transfer service.
-- Non-production `LinuxDevelopmentMain` command-line harness accepting one explicit root and exposing read-only listing only.
+- `LinuxLocationDiscovery` read-only candidate discovery for Home, supported XDG user directories, user-facing mount points, and `/media` / `/run/media` removable-media candidates.
+- XDG parsing that expands only literal `$HOME` / `${HOME}` forms or accepts explicit absolute paths; shell expressions and relative path values are not executed or accepted as discovered locations.
+- Location candidates include `requiresExplicitSelection = true`; discovery does not instantiate a file provider, grant filesystem access, or widen the selected provider root.
+- Mount discovery uses `/proc/self/mountinfo`, decodes Linux mount escapes, filters pseudo/system-only mount surfaces, and does not equate a removable-media candidate with verified ejectability.
+- Non-production `LinuxDevelopmentMain` command-line harness accepting either one explicit root for read-only provider listing or `--locations` for read-only location-candidate reporting.
 - Linux provider tests for symlink visibility/non-traversal, path-escape rejection, root mutation refusal, non-recursive deletion, and shared verified Linux-to-Linux ordinary-file transfer.
+- Linux location-discovery tests for XDG parsing/fallback, shell-expression rejection, mount escape parsing/filtering, candidate classification, and explicit-selection semantics.
 - Linux workflow definition for exact-source repository validation, shared-core/Linux tests, JVM development distribution build, explicit-root smoke testing, artifact digest, and a development-only packaging boundary.
 
 A passing Linux development workflow is source/build/test evidence for this bounded slice; it is not production desktop acceptance and does not by itself justify adding Linux to machine-readable `supported_platforms`.
@@ -71,11 +76,13 @@ Target capabilities include complete copy/move/duplicate/create/delete/restore o
 
 The current mutation slice is intentionally narrower than the target. It has verified ordinary-file copy/move service primitives but does not yet expose destination-selection copy/move workflows in the Android UI or a Linux desktop UI, does not recursively transfer or delete folders, does not yet provide complete duplicate/create-file workflows, and does not claim unified Trash or recovery semantics.
 
-The Linux desktop client must continue from the bounded provider foundation into an accessible desktop UI and platform-native integration before broader recursive/destructive workflows are enabled.
+The Linux desktop client must continue from the bounded provider/discovery foundation into an accessible desktop UI and platform-native integration before broader recursive/destructive workflows are enabled.
 
 ## Target discovery and organization scope
 
 Target capabilities include universal and natural-language search, content/metadata search, saved searches, tags, collections, smart collections, favorites, pinned locations, Recent, Continue Working, activity, provenance, and related-file discovery.
+
+Linux local location-candidate discovery is now a bounded development primitive. It is not yet the user-facing location/navigation experience and is separate from search/indexing and provider authorization.
 
 ## Target preview and details scope
 
@@ -96,10 +103,10 @@ Target previews include supported images, video, audio, PDF, text, code, archive
 
 Target platform experiences include a GoreeCloud-native file picker, save experience, open-with/reveal-in-file-manager flows, deep links, cross-application handoff, Operations Center, platform-level file status, and unified recovery/continuity pathways.
 
-Linux additionally targets desktop-native Glaze UI, keyboard/pointer navigation, context menus, windows/tabs/dual-pane workflows, file associations, drag-and-drop, clipboard file operations, XDG integration, removable/mounted storage behavior, network providers, and desktop-native accessibility.
+Linux additionally targets desktop-native Glaze UI, keyboard/pointer navigation, context menus, windows/tabs/dual-pane workflows, file associations, drag-and-drop, clipboard file operations, user-facing XDG location/navigation integration, mount/removable lifecycle and safe-eject behavior, network providers, and desktop-native accessibility.
 
 Android additionally targets touch-first adaptive navigation, system document-provider integration, platform share/Open/Save flows, and least-privilege URI-based storage authorization.
 
 ## Not yet implemented or accepted
 
-The current application does **not** yet provide an accepted Linux native desktop client or supported Linux package; GoreeCloud Drive connectivity; real Sync/Backup/Everkeep/Privacy/Wardveil/Identity/Mesh runtime calls; universal indexing/search; user-facing destination-selection copy/move workflows; recursive folder transfer; complete duplicate/create-file workflows; unified Trash/recovery; multi-selection; sharing; previews; network storage; removable-media-specific controls; Linux XDG/file-association/Open With/drag-and-drop/desktop-window integration; system file-picker registration; complete current-Stable Glaze UI acceptance; production signing/deployment; or production/Stable acceptance.
+The current application does **not** yet provide an accepted Linux native desktop client or supported Linux package; GoreeCloud Drive connectivity; real Sync/Backup/Everkeep/Privacy/Wardveil/Identity/Mesh runtime calls; universal indexing/search; user-facing destination-selection copy/move workflows; recursive folder transfer; complete duplicate/create-file workflows; unified Trash/recovery; multi-selection; sharing; previews; network storage; removable-media lifecycle/safe-eject controls; Linux user-facing XDG navigation, file-association/Open With, drag-and-drop/clipboard, or desktop-window integration; system file-picker registration; complete current-Stable Glaze UI acceptance; production signing/deployment; or production/Stable acceptance.
