@@ -2,9 +2,9 @@
 
 ## Current lifecycle
 
-**Active Android development with shared-core and bounded Linux-provider development. Production and Stable eligibility: false.**
+**Active Android development with shared-core and bounded Linux-provider/location-discovery development. Production and Stable eligibility: false.**
 
-Linux and Android are required first-class native product platforms. Android is the current native user-facing implementation. The repository now contains a shared JVM `:core` module plus a bounded Linux local-filesystem provider, provider tests, and non-production command-line development harness. This does **not** establish an accepted Linux desktop client, supported Linux package, production runtime, or Stable Linux support.
+Linux and Android are required first-class native product platforms. Android is the current native user-facing implementation. The repository now contains a shared JVM `:core` module plus a bounded Linux local-filesystem provider, read-only Home/XDG/mount location-candidate discovery, provider/discovery tests, and a non-production command-line development harness. This does **not** establish an accepted Linux desktop client, supported Linux package, production runtime, or Stable Linux support.
 
 The current development milestone therefore distinguishes three levels of truth:
 
@@ -15,10 +15,10 @@ The current development milestone therefore distinguishes three levels of truth:
 | Gate | Required baseline | Current File Manager state | Production gate |
 | --- | --- | --- | --- |
 | Native application model | Original GoreeCloud-owned product | Native Android application plus shared-core/platform-adapter architecture established | In progress |
-| Required platform scope | First-class Linux + Android | Android native client exists; Linux development provider/build boundary exists; accepted desktop client/package/runtime absent | Blocked |
+| Required platform scope | First-class Linux + Android | Android native client exists; Linux development provider/discovery/build boundary exists; accepted desktop client/package/runtime absent | Blocked |
 | Shared cross-platform core | Platform-neutral provider/resource/operation/evidence contracts | `:core` consumed by Android and Linux development module; exact candidate validation required | In progress |
 | Android storage authorization | Least-privilege, provider-bounded access | App-private confinement plus user-selected persisted document trees implemented | In progress |
-| Linux filesystem/provider integration | Native bounded Linux filesystem/provider behavior | Explicit-root provider source, symlink/path/mount safeguards, tests, harness, and Linux workflow definition present; broader desktop/provider acceptance incomplete | In progress / blocked for production |
+| Linux filesystem/provider integration | Native bounded Linux filesystem/provider behavior | Explicit-root provider, symlink/path/mount safeguards, read-only Home/XDG/mount candidate discovery, tests, harness, and Linux workflow definition present; broader desktop/provider acceptance incomplete | In progress / blocked for production |
 | Core file operations | Safe, capability-aware, reconcilable operations | Bounded mutation + SHA-256-verified ordinary-file transfer foundation; complete UI/Trash/recursive workflows incomplete | Blocked |
 | Glaze UI | GLAZE UI V1.3 / 1.3.0 Stable | Central Platform Contract baseline is V1.3; Android mapping still requires current consumer migration/acceptance and Linux harness has no desktop Glaze UI | Blocked |
 | Wardveil Security | Current approved Wardveil contracts | Adapter boundary only; no accepted runtime evidence | Blocked |
@@ -27,7 +27,7 @@ The current development milestone therefore distinguishes three levels of truth:
 | GoreeCloud Identity | Current approved identity/access authority | Adapter boundary only | In progress |
 | GoreeCloud Mesh | Current approved coordination/evidence profile | Adapter boundary only | In progress |
 
-`goreecloud.platform.yaml` intentionally remains Android-only in `supported_platforms` until Linux satisfies the machine-readable supported-platform evidence requirements. A Linux development module existing is not sufficient reason to broaden that field.
+`goreecloud.platform.yaml` intentionally remains Android-only in `supported_platforms` until Linux satisfies the machine-readable supported-platform evidence requirements. A Linux development module or discovery layer existing is not sufficient reason to broaden that field.
 
 ## Android storage acceptance boundary
 
@@ -61,9 +61,20 @@ Current source safeguards include:
 - shared verified ordinary-file copy/move supported by provider primitives and exercised in Linux test source;
 - command-line development harness accepts one explicit root and exposes read-only listing only.
 
+The current `LinuxLocationDiscovery` layer is separately bounded and **does not grant provider access**. It may discover:
+
+- the current Home directory;
+- recognized XDG user directories from `user-dirs.dirs`;
+- user-facing mounted filesystems parsed from `/proc/self/mountinfo`;
+- `/media` and `/run/media` paths as removable-media **candidates**.
+
+All discovery entries require explicit selection before File Manager constructs a provider. XDG parsing expands only literal `$HOME` / `${HOME}` forms or accepts explicit absolute paths; it does not execute shell expressions. Discovery includes only existing non-symlink directories under its current checks, filters ordinary pseudo/system-only mount surfaces, and does not treat a removable-media candidate as proof of hardware removability, safe-eject support, or mutation authority.
+
+`LinuxDevelopmentMain --locations` exposes only this read-only candidate report. The existing explicit-root mode remains the provider-access development boundary. No discovered location is automatically opened, authorized, or made mutable.
+
 Exact-head Linux development CI is required to establish candidate-specific source/build/test evidence for these behaviors. That workflow checks repository contracts, shared-core/Linux tests, JVM development-distribution construction, explicit-root smoke behavior, a distribution digest, and an explicit development-only artifact boundary.
 
-Even after those checks pass, Linux production acceptance still requires the native desktop application surface, XDG/mount/removable-media integration, reviewed permissions/ownership/symlink policy beyond the bounded slice, desktop keyboard/pointer/accessibility integration, applicable file-association/Open With and drag-and-drop behavior, supported distribution/desktop-environment scope, accepted package/signing/release provenance, representative runtime testing, current Glaze acceptance, and applicable Platform-System evidence.
+Even after those checks pass, Linux production acceptance still requires the native desktop application surface, user-facing XDG location/navigation policy, mount/removable-media lifecycle and safe-eject integration, reviewed permissions/ownership/symlink policy beyond the bounded slice, desktop keyboard/pointer/accessibility integration, applicable file-association/Open With and drag-and-drop behavior, supported distribution/desktop-environment scope, accepted package/signing/release provenance, representative runtime testing, current Glaze acceptance, and applicable Platform-System evidence.
 
 Android source/build evidence cannot be reused as Linux acceptance.
 
@@ -115,7 +126,7 @@ Current Linux development workflow checks include:
 - exact source-revision checkout and recording;
 - repository/document validation;
 - shared-core unit tests;
-- Linux provider unit tests;
+- Linux provider and location-discovery unit tests;
 - JVM development-distribution construction;
 - explicit-root development-harness smoke test;
 - distribution SHA-256 digest;
@@ -123,4 +134,4 @@ Current Linux development workflow checks include:
 
 The shared Platform Contract workflow remains an independent required gate and is pinned to the accepted central V1.3 validator revision. A successful manifest/conformance run proves only the Platform Contract checks performed for that exact caller revision; it does not upgrade application-specific Glaze UI, security, privacy, recovery, Linux desktop, or Stable acceptance.
 
-Passing source/build checks establishes only the checks actually performed for that exact revision. It does not establish platform-runtime production acceptance, representative-platform compatibility, production signing/deployment, Linux desktop UI/package support, complete Platform-System integration, or Stable qualification.
+Passing source/build checks establishes only the checks actually performed for that exact revision. It does not establish platform-runtime production acceptance, representative-platform compatibility, production signing/deployment, Linux desktop UI/package support, complete mount/removable-media lifecycle behavior, complete Platform-System integration, or Stable qualification.
