@@ -2,7 +2,7 @@
 
 ## Current lifecycle
 
-**Active Android development with shared-core and bounded Linux-provider/location-discovery development. Production and Stable eligibility: false.**
+**Active Android development with shared-core and bounded Linux-provider development, extended by read-only location discovery. Production and Stable eligibility: false.**
 
 Linux and Android are required first-class native product platforms. Android is the current native user-facing implementation. The repository now contains a shared JVM `:core` module plus a bounded Linux local-filesystem provider, read-only Home/XDG/mount location-candidate discovery, provider/discovery tests, and a non-production command-line development harness. This does **not** establish an accepted Linux desktop client, supported Linux package, production runtime, or Stable Linux support.
 
