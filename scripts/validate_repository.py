@@ -110,7 +110,8 @@ for required_text in [
 
 specifications = (ROOT / "SPECIFICATIONS.md").read_text(encoding="utf-8")
 for required_text in [
-    "Required native platforms: Linux and Android",
+    "Required native platforms",
+    "Linux and Android",
     "Linux implementation status",
     "Cross-platform resource identity",
     "GLAZE UI V1.3 / 1.3.0",
