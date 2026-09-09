@@ -2,6 +2,16 @@
 
 This file distinguishes **implemented now** from **target product scope**. Planned capabilities must not be read as current functionality.
 
+## Required platform targets
+
+GoreeCloud File Manager is required to support **Linux and Android** as first-class native platforms.
+
+- Android is the current implemented development client.
+- Linux is a required target but is **not yet implemented, packaged, runtime-validated, or accepted**.
+- Shared file/provider identity, capability semantics, transfer verification, evidence state, and GoreeCloud authority boundaries must remain coherent across both platforms.
+- Linux-native functionality targets authorized filesystem paths, XDG locations, mounts/removable storage, Unix permissions/ownership, symbolic links, file associations/Open With, drag-and-drop, keyboard/pointer workflows, windows/tabs/dual-pane behavior, and supported network/provider integration.
+- Android-native behavior retains scoped/least-privilege storage, user-authorized Android document trees, touch-first adaptive layouts, Android lifecycle/permission behavior, and platform Open/Save/share integration.
+
 ## Implemented in the current Android development slice
 
 - Native Android application shell.
@@ -32,7 +42,9 @@ This file distinguishes **implemented now** from **target product scope**. Plann
 
 Target capabilities include complete copy/move/duplicate/create/delete/restore operations; multi-selection; drag and drop; conflict handling; list/grid/gallery/column/detail views; breadcrumbs; tabs/windows/workspaces; removable and network storage specializations; archives; permissions; checksums; duplicate handling; transfer queues; Trash; offline files; and storage cleanup/intelligence.
 
-The current mutation slice is intentionally narrower than the target. It has verified regular-file copy/move service primitives but does not yet expose destination-selection copy/move workflows in the Android UI, does not recursively transfer or delete folders, does not yet provide duplicate/create-file workflows, and does not claim unified Trash or recovery semantics.
+The current mutation slice is intentionally narrower than the target. It has verified regular-file copy/move service primitives but does not yet expose destination-selection copy/move workflows in the Android UI, does not recursively transfer or delete folders, does not yet provide complete duplicate/create-file workflows, and does not claim unified Trash or recovery semantics.
+
+The Linux client must begin with bounded local browsing and safe ordinary-file operations before broader recursive/destructive workflows are enabled.
 
 ## Target discovery and organization scope
 
@@ -57,6 +69,10 @@ Target previews include supported images, video, audio, PDF, text, code, archive
 
 Target platform experiences include a GoreeCloud-native file picker, save experience, open-with/reveal-in-file-manager flows, deep links, cross-application handoff, Operations Center, platform-level file status, and unified recovery/continuity pathways.
 
+Linux additionally targets desktop-native keyboard/pointer navigation, context menus, windows/tabs/dual-pane workflows, file associations, drag-and-drop, removable/mounted storage behavior, and desktop-native accessibility.
+
+Android additionally targets touch-first adaptive navigation, system document-provider integration, platform share/Open/Save flows, and least-privilege URI-based storage authorization.
+
 ## Not yet implemented or accepted
 
-The current application does **not** yet provide GoreeCloud Drive connectivity; real Sync/Backup/Everkeep/Privacy/Wardveil/Identity/Mesh runtime calls; universal indexing/search; user-facing destination-selection copy/move workflows; recursive folder transfer; duplicate/create-file workflows; unified Trash/recovery; multi-selection; sharing; previews; network storage; removable-media-specific controls; system file-picker registration; complete current-Stable Glaze UI acceptance; production signing/deployment; or production/Stable acceptance.
+The current application does **not** yet provide a Linux client; GoreeCloud Drive connectivity; real Sync/Backup/Everkeep/Privacy/Wardveil/Identity/Mesh runtime calls; universal indexing/search; user-facing destination-selection copy/move workflows; recursive folder transfer; complete duplicate/create-file workflows; unified Trash/recovery; multi-selection; sharing; previews; network storage; removable-media-specific controls; system file-picker registration; complete current-Stable Glaze UI acceptance; production signing/deployment; or production/Stable acceptance.
