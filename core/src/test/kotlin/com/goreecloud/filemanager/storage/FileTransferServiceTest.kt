@@ -77,6 +77,21 @@ class FileTransferServiceTest {
         assertArrayEquals("GoreeCloud".toByteArray(), destination.bytes("moved.txt"))
     }
 
+    @Test
+    fun verificationNeverFallsBackToSameNameDifferentResource() {
+        val source = MemoryProvider("source")
+        val destination = DelayedDuplicateDestinationProvider("destination")
+        val sourceEntry = source.put("report.txt", "GoreeCloud".toByteArray())
+        val service = FileTransferService(mapOf(source.descriptor.id to source, destination.descriptor.id to destination))
+
+        val result = service.copy(sourceEntry, destination.root, "copy.txt")
+
+        assertEquals(FileOperationOutcome.FAILED, result.outcome)
+        assertArrayEquals("XXXXXXXXXX".toByteArray(), destination.existingBytes())
+        assertTrue(destination.existingResourceStillPresent())
+        assertFalse(destination.createdResourceStillPresent())
+    }
+
     private class MemoryProvider(
         id: String,
         private val failDelete: Boolean = false,
@@ -171,5 +186,97 @@ class FileTransferServiceTest {
                 FileCapability.DELETE,
             ),
         )
+    }
+
+    /**
+     * Simulates a provider that permits duplicate display names and whose list view has not yet
+     * surfaced the resource just returned by createFile. A same-name fallback would alias the
+     * unrelated pre-existing resource and could delete it after verification failure.
+     */
+    private class DelayedDuplicateDestinationProvider(id: String) : FileStorageProvider {
+        private val files = linkedMapOf(
+            EXISTING_RESOURCE_ID to "XXXXXXXXXX".toByteArray(),
+        )
+
+        override val descriptor = StorageProviderDescriptor(
+            id = id,
+            displayName = id,
+            locationKind = FileLocationKind.EXTERNAL,
+            authorizationKind = StorageAuthorizationKind.APP_PRIVATE,
+            isReadOnly = false,
+        )
+
+        override val root = BrowserLocation(
+            providerId = id,
+            resourceId = "root",
+            displayName = id,
+            capabilities = setOf(
+                FileCapability.READ,
+                FileCapability.LIST_CHILDREN,
+                FileCapability.CREATE_FILE,
+            ),
+        )
+
+        override fun list(directory: BrowserLocation): List<FileEntry> {
+            require(directory.providerId == descriptor.id)
+            // Deliberately omit the newly created resource to model delayed provider enumeration.
+            return listOf(entry(EXISTING_RESOURCE_ID, "copy.txt"))
+        }
+
+        override fun createFile(parent: BrowserLocation, name: String): FileOperationResult {
+            require(parent.providerId == descriptor.id)
+            files[CREATED_RESOURCE_ID] = byteArrayOf()
+            return FileOperationResult(
+                FileOperationOutcome.SUCCEEDED,
+                "created",
+                entry(CREATED_RESOURCE_ID, name),
+            )
+        }
+
+        override fun openRead(entry: FileEntry): InputStream? =
+            files[entry.resourceId]?.let(::ByteArrayInputStream)
+
+        override fun openWrite(entry: FileEntry): OutputStream? {
+            if (!files.containsKey(entry.resourceId)) return null
+            return object : ByteArrayOutputStream() {
+                override fun close() {
+                    super.close()
+                    files[entry.resourceId] = toByteArray()
+                }
+            }
+        }
+
+        override fun delete(entry: FileEntry): FileOperationResult {
+            val removed = files.remove(entry.resourceId) != null
+            return FileOperationResult(
+                if (removed) FileOperationOutcome.SUCCEEDED else FileOperationOutcome.FAILED,
+                if (removed) "deleted" else "missing",
+            )
+        }
+
+        fun existingBytes(): ByteArray = files.getValue(EXISTING_RESOURCE_ID)
+
+        fun existingResourceStillPresent(): Boolean = files.containsKey(EXISTING_RESOURCE_ID)
+
+        fun createdResourceStillPresent(): Boolean = files.containsKey(CREATED_RESOURCE_ID)
+
+        private fun entry(resourceId: String, displayName: String): FileEntry = FileEntry(
+            providerId = descriptor.id,
+            resourceId = resourceId,
+            displayName = displayName,
+            type = FileItemType.FILE,
+            locationKind = FileLocationKind.EXTERNAL,
+            sizeBytes = files[resourceId]?.size?.toLong(),
+            modifiedAt = null,
+            capabilities = setOf(
+                FileCapability.READ,
+                FileCapability.DELETE,
+            ),
+        )
+
+        private companion object {
+            const val EXISTING_RESOURCE_ID = "existing-copy"
+            const val CREATED_RESOURCE_ID = "created-copy"
+        }
     }
 }
