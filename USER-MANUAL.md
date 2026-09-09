@@ -2,7 +2,9 @@
 
 ## Current availability
 
-GoreeCloud File Manager is in active Android development. The current build is a development APK and is **not Stable or production accepted**.
+GoreeCloud File Manager is required to support **Linux and Android** as first-class native platforms. The current implemented build is Android-only: it is a development APK and is **not Stable or production accepted**.
+
+There is currently **no Linux application build, Linux package, or Linux runtime acceptance**. Linux installation and usage instructions will not be presented as current behavior until a Linux client exists and its platform-specific evidence is accepted.
 
 Current Android development identity:
 
@@ -13,7 +15,7 @@ Current Android development identity:
 - Minimum Android: API 26
 - Target API: 36
 
-The current application provides a native GoreeCloud-owned file-management shell, app-private browsing, and user-authorized Android document-tree browsing. It does not yet provide the complete File Manager product described in the project specification.
+The current Android application provides a native GoreeCloud-owned file-management shell, app-private browsing, and user-authorized Android document-tree browsing. It does not yet provide the complete File Manager product described in the project specification.
 
 ## Home
 
@@ -69,7 +71,15 @@ Deletion currently uses the selected provider's delete operation. File Manager d
 
 A user-authorized Android document provider can advertise different abilities for different items. A location may be readable but not writable, or may allow rename without allowing creation. File Manager keeps those provider capabilities explicit rather than assuming all filesystems support the same operations.
 
-The current capability model includes read, child listing, create file, create folder, rename, delete, copy, and move concepts. Only capabilities backed by the current provider implementation are exposed. Copy, move, and create-file workflows remain future implementation work in this development stage.
+The current capability model includes read, child listing, create file, create folder, rename, delete, copy, and move concepts. Only capabilities backed by the current provider implementation are exposed. The backend contains verified regular-file transfer primitives, but complete destination-selection copy/move UI, recursive transfer, multi-selection, and complete file-creation/duplicate workflows remain development work.
+
+## Linux availability and planned behavior
+
+Linux is a required File Manager product platform, but it is not a current user-installable surface.
+
+The Linux client is intended to provide native desktop browsing over authorized filesystem/provider resources, including XDG user locations, mounted and removable storage, Unix permissions/ownership, symbolic links, file associations/Open With, drag-and-drop, keyboard/pointer workflows, windows/tabs/dual-pane behavior, and supported network/provider locations.
+
+Those statements describe required target behavior only. They are not instructions for a current Linux build and do not establish any Linux distribution, package format, desktop environment, or production acceptance.
 
 ## GoreeCloud platform status
 
@@ -89,12 +99,16 @@ Unknown, unavailable, stale, or unverified platform evidence must remain visible
 
 The current Android development build does not yet provide complete copy/move/duplicate workflows, file creation, multi-selection, universal search, previews, tags, collections, sharing, GoreeCloud Drive runtime access, GoreeCloud Sync runtime access, unified Trash, version history, Operations Center, verified backup/Everkeep recovery, Wardveil runtime scanning evidence, Privacy Shield runtime authorization, production Identity/Mesh integration, system-wide GoreeCloud file-picker registration, production signing, store distribution, or Stable qualification.
 
-Glaze UI 2.0.0 is the current design-system target, but representative-device visual, accessibility, input, responsiveness, performance, and current-Stable conformance acceptance remain required.
+A Linux client, Linux package, Linux-native filesystem provider, Linux desktop integration, and Linux acceptance evidence are also not yet implemented.
+
+**GLAZE UI V1.3 / 1.3.0** is the current governed design-system target, but platform-specific visual, accessibility, input, responsiveness, performance, and current-Stable conformance acceptance remain required.
 
 ## Reporting development problems
 
-When reporting a problem, include the File Manager version, Android version, device model, storage-provider type, the operation attempted, expected result, and observed result. Do not include passwords, tokens, private file contents, encryption keys, or other reusable secrets in bug reports.
+For the current Android build, include the File Manager version, Android version, device model, storage-provider type, the operation attempted, expected result, and observed result. Do not include passwords, tokens, private file contents, encryption keys, or other reusable secrets in bug reports.
+
+Linux-specific reporting guidance will be added when a Linux development build exists.
 
 ## Acceptance language
 
-A successful CI run proves only the checks performed by the workflow for the exact source revision, such as repository validation, unit tests, Android lint, APK assembly, package/application-label verification, and artifact publication. It does not by itself establish production security, privacy, recovery, accessibility, representative-device compatibility, controlled signing, deployment, or Stable qualification.
+A successful CI run proves only the checks performed by the workflow for the exact source revision, such as repository validation, unit tests, Android lint, APK assembly, package/application-label verification, and artifact publication. It does not by itself establish Linux support, production security, privacy, recovery, accessibility, representative-device/platform compatibility, controlled signing, deployment, or Stable qualification.
