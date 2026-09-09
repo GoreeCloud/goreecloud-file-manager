@@ -1,0 +1,45 @@
+# Gradle / Android build output
+.gradle/
+build/
+**/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE metadata
+.idea/
+*.iml
+.vscode/
+
+# Packaged build artifacts
+*.apk
+*.aab
+
+# Signing material and credentials
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+
+# Runtime / generated evidence
+build-evidence/
+security-artifacts/
+
+# Python validation helpers
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS/editor temporary files
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo

@@ -1,0 +1,79 @@
+name: Linux development validation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Record exact source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
+          mkdir -p build-evidence
+          printf '%s\n' "$ACTUAL_SHA" | tee build-evidence/linux-source-commit.txt
+
+      - name: Repository contract validation
+        run: python3 scripts/validate_repository.py
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Shared core and Linux provider tests
+        run: gradle :core:test :linux-client:test
+
+      - name: Build Linux JVM development distribution
+        run: gradle :linux-client:installDist :linux-client:distTar
+
+      - name: Smoke-test explicit-root development harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/goreecloud-file-manager-linux-smoke"
+          mkdir -p "$ROOT/folder"
+          printf 'GoreeCloud Linux smoke test\n' > "$ROOT/sample.txt"
+          ./linux-client/build/install/linux-client/bin/linux-client "$ROOT" | tee build-evidence/linux-smoke.txt
+          grep -Fq $'FILE\tsample.txt' build-evidence/linux-smoke.txt
+          grep -Fq $'FOLDER\tfolder' build-evidence/linux-smoke.txt
+
+      - name: Record development distribution digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAR="linux-client/build/distributions/linux-client.tar"
+          test -f "$TAR"
+          sha256sum "$TAR" | tee build-evidence/linux-client.tar.sha256
+          printf '%s\n' 'Development JVM distribution only; not an accepted Linux desktop package or Stable release.' \
+            | tee build-evidence/linux-development-boundary.txt
+
+      - name: Upload Linux development evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: goreecloud-file-manager-linux-development-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            linux-client/build/distributions/linux-client.tar
+            build-evidence/linux-source-commit.txt
+            build-evidence/linux-smoke.txt
+            build-evidence/linux-client.tar.sha256
+            build-evidence/linux-development-boundary.txt
+          if-no-files-found: error
+          retention-days: 14

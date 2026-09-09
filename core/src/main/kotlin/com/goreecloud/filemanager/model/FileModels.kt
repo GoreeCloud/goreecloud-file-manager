@@ -5,6 +5,7 @@ import java.time.Instant
 enum class FileItemType {
     FILE,
     FOLDER,
+    SYMLINK,
 }
 
 enum class FileLocationKind {

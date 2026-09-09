@@ -2,7 +2,9 @@
 
 ## Current availability
 
-GoreeCloud File Manager is in active Android development. The current build is a development APK and is **not Stable or production accepted**.
+GoreeCloud File Manager is required to support **Linux and Android** as first-class native platforms. The current native user-facing application is Android: it is a development APK and is **not Stable or production accepted**.
+
+A bounded Linux local-filesystem provider and non-production command-line development harness now exist in source. They are engineering/validation surfaces, not the accepted GoreeCloud File Manager desktop application. There is currently **no accepted Linux desktop UI, supported Linux package, production Linux runtime, or Linux Stable acceptance**.
 
 Current Android development identity:
 
@@ -13,11 +15,11 @@ Current Android development identity:
 - Minimum Android: API 26
 - Target API: 36
 
-The current application provides a native GoreeCloud-owned file-management shell, app-private browsing, and user-authorized Android document-tree browsing. It does not yet provide the complete File Manager product described in the project specification.
+The Android application provides a native GoreeCloud-owned file-management shell, app-private browsing, and user-authorized Android document-tree browsing. It does not yet provide the complete File Manager product described in the project specification.
 
 ## Home
 
-Home shows the storage locations currently available to File Manager and keeps GoreeCloud platform status separate from ordinary file access.
+Home shows the storage locations currently available to the Android File Manager application and keeps GoreeCloud platform status separate from ordinary file access.
 
 The built-in **App storage** location is the application's private Android files directory. It is isolated from ordinary user storage and is primarily a development/provider foundation.
 
@@ -35,7 +37,7 @@ File Manager does not request unrestricted filesystem access for this workflow. 
 
 Persisted locations are rediscovered from Android's persisted URI permissions when the application starts. If Android or the backing provider later revokes or invalidates access, File Manager reports the location as unreadable rather than pretending it remains available.
 
-## Browsing
+## Browsing on Android
 
 Choose a storage-location card on Home to open it in Browse.
 
@@ -45,35 +47,72 @@ Available actions are capability-driven. File Manager only exposes an action whe
 
 ## Creating folders
 
-When the current folder supports creation, use the **Create folder** action in the Browse top bar.
+When the current Android folder supports creation, use the **Create folder** action in the Browse top bar.
 
 File Manager validates the requested name before sending the operation to the provider. Empty names, `.` and `..`, path separators, null characters, and names longer than the current portability limit are rejected.
 
 A successful message means File Manager received a successful provider result and refreshed the directory. Provider failures are surfaced instead of being silently converted into success.
 
+The Linux development provider also contains a bounded create-folder primitive for testing inside its selected root, but the current Linux command-line harness intentionally does not expose a user-facing create command.
+
 ## Renaming
 
-When an item supports rename, open its overflow menu and choose **Rename**.
+When an Android item supports rename, open its overflow menu and choose **Rename**.
 
 File Manager validates the new name and asks the exact selected storage provider to perform the rename. For the app-private provider, conflicting names are rejected before mutation. Android document providers remain authoritative for any additional provider-specific naming and conflict rules.
 
+The Linux development provider contains a bounded rename primitive, but it is not currently exposed as a production desktop workflow.
+
 ## Deleting files and folders
 
-When an item supports delete, open its overflow menu and choose **Delete**. A confirmation dialog warns that File Manager has not yet verified a backup or recovery path for that item.
+When an Android item supports delete, open its overflow menu and choose **Delete**. A confirmation dialog warns that File Manager has not yet verified a backup or recovery path for that item.
 
 The current development slice deliberately refuses recursive folder deletion. A folder must be empty before File Manager will request deletion. This prevents an early development build from recursively deleting a directory tree through a provider without the later Trash, backup, Everkeep, and destructive-operation safeguards.
+
+The Linux development provider enforces the same empty-folder-only boundary and rejects mutation of its provider root. Its command-line harness remains read-only and does not expose deletion to a user.
 
 Deletion currently uses the selected provider's delete operation. File Manager does not yet claim a unified Trash workflow or verified recovery for these operations.
 
 ## What capability-driven means
 
-A user-authorized Android document provider can advertise different abilities for different items. A location may be readable but not writable, or may allow rename without allowing creation. File Manager keeps those provider capabilities explicit rather than assuming all filesystems support the same operations.
+A storage provider can advertise different abilities for different resources. A location may be readable but not writable, or may allow rename without allowing creation. File Manager keeps those provider capabilities explicit rather than assuming all filesystems/providers support the same operations.
 
-The current capability model includes read, child listing, create file, create folder, rename, delete, copy, and move concepts. Only capabilities backed by the current provider implementation are exposed. Copy, move, and create-file workflows remain future implementation work in this development stage.
+The current capability model includes read, child listing, create file, create folder, rename, delete, copy, and move concepts. Only capabilities backed by the current provider implementation are exposed.
+
+The shared backend contains verified ordinary-file transfer primitives. Complete destination-selection copy/move UI, recursive transfer, multi-selection, and complete file-creation/duplicate workflows remain development work.
+
+## Linux development harness
+
+Linux is a required File Manager product platform. The current repository contains a development-only JVM harness for validating the initial Linux provider/application boundary before a native desktop UI and supported package exist.
+
+The harness accepts exactly one explicit root directory and performs a read-only listing:
+
+```bash
+gradle :core:test :linux-client:test
+gradle :linux-client:installDist
+./linux-client/build/install/linux-client/bin/linux-client /an/explicit/root
+```
+
+This is a developer workflow, not a supported Linux installation procedure.
+
+The current Linux provider applies these boundaries:
+
+- the selected root must exist, be a directory, and not itself be a symbolic link;
+- resource identities are provider-relative to the selected root;
+- normalized path traversal outside the selected root is rejected;
+- symbolic links are visible as `SYMLINK` entries but are not traversed or mutated;
+- mutation capability is withheld when a detected `FileStore`/mount boundary differs from the selected root;
+- create, rename, write, copy/move, and delete primitives remain bounded by operating-system permissions and provider capabilities;
+- recursive folder deletion and recursive folder transfer are refused;
+- the command-line harness itself remains read-only.
+
+The Linux desktop destination still requires XDG location integration, mounted/removable-media UX, Unix ownership/permission presentation and policy, file associations/Open With, drag-and-drop, clipboard operations, keyboard/pointer navigation, windows/tabs/dual-pane behavior, network/provider locations, native accessibility, a Glaze UI desktop surface, accepted packaging, and representative runtime acceptance.
+
+No Debian, Flatpak, AppImage, RPM, Snap, desktop environment, or distribution should be treated as supported from the current development JVM distribution.
 
 ## GoreeCloud platform status
 
-The following GoreeCloud systems remain required platform integrations but are not yet production-accepted in this File Manager build:
+The following GoreeCloud systems remain required platform integrations but are not yet production-accepted in File Manager:
 
 - **GoreeCloud Drive** — first-party cloud file/resource authority.
 - **GoreeCloud Sync** — synchronization and conflict authority. Sync is not backup.
@@ -83,18 +122,30 @@ The following GoreeCloud systems remain required platform integrations but are n
 - **GoreeCloud Identity** — account, ownership, device, session, and delegated access authority.
 - **GoreeCloud Mesh** — bounded cross-service coordination and event delivery.
 
-Unknown, unavailable, stale, or unverified platform evidence must remain visible as such. The application must not turn missing evidence into a positive privacy, security, synchronization, backup, or recovery claim.
+Unknown, unavailable, stale, or unverified platform evidence must remain visible as such. File Manager must not turn missing evidence into a positive privacy, security, synchronization, backup, or recovery claim.
 
 ## Current limitations
 
-The current Android development build does not yet provide complete copy/move/duplicate workflows, file creation, multi-selection, universal search, previews, tags, collections, sharing, GoreeCloud Drive runtime access, GoreeCloud Sync runtime access, unified Trash, version history, Operations Center, verified backup/Everkeep recovery, Wardveil runtime scanning evidence, Privacy Shield runtime authorization, production Identity/Mesh integration, system-wide GoreeCloud file-picker registration, production signing, store distribution, or Stable qualification.
+The current Android development build does not yet provide complete copy/move/duplicate workflows, user-facing file creation, multi-selection, universal search, previews, tags, collections, sharing, GoreeCloud Drive runtime access, GoreeCloud Sync runtime access, unified Trash, version history, Operations Center, verified backup/Everkeep recovery, Wardveil runtime scanning evidence, Privacy Shield runtime authorization, production Identity/Mesh integration, system-wide GoreeCloud file-picker registration, production signing, store distribution, or Stable qualification.
 
-Glaze UI 2.0.0 is the current design-system target, but representative-device visual, accessibility, input, responsiveness, performance, and current-Stable conformance acceptance remain required.
+The Linux development source does not yet provide a native desktop Glaze UI application, XDG/home-location UX, supported mount/removable-media workflows, file associations/Open With, drag-and-drop/clipboard integration, windows/tabs/dual-pane UI, network providers, accepted package formats, production signing/distribution, representative desktop/distribution acceptance, or production/Stable runtime status.
+
+**GLAZE UI V1.3 / 1.3.0** is the current governed design-system target, but platform-specific visual, accessibility, input, responsiveness, performance, and current-Stable conformance acceptance remain required. The Linux command-line development harness is not Glaze UI conformance evidence.
 
 ## Reporting development problems
 
-When reporting a problem, include the File Manager version, Android version, device model, storage-provider type, the operation attempted, expected result, and observed result. Do not include passwords, tokens, private file contents, encryption keys, or other reusable secrets in bug reports.
+For the Android build, include the File Manager version, Android version, device model, storage-provider type, the operation attempted, expected result, and observed result.
+
+For the Linux development harness/provider, include the exact source revision, Linux distribution/kernel information, Java version, selected-root filesystem type where relevant, whether a symbolic link or mount boundary was involved, the command/test attempted, expected result, and observed result.
+
+Do not include passwords, tokens, private file contents, encryption keys, signing material, or other reusable secrets in bug reports.
 
 ## Acceptance language
 
-A successful CI run proves only the checks performed by the workflow for the exact source revision, such as repository validation, unit tests, Android lint, APK assembly, package/application-label verification, and artifact publication. It does not by itself establish production security, privacy, recovery, accessibility, representative-device compatibility, controlled signing, deployment, or Stable qualification.
+A successful CI run proves only the checks performed by the workflow for the exact source revision.
+
+Android development validation covers repository validation, shared-core tests, Android unit tests, Android lint, APK assembly, package/application-label verification, and artifact publication.
+
+Linux development validation covers repository validation, shared-core/Linux-provider tests, JVM development-distribution construction, an explicit-root read-only harness smoke test, and artifact digest/boundary evidence.
+
+Neither workflow by itself establishes production security, privacy, recovery, accessibility, representative-platform compatibility, controlled signing/deployment, Linux desktop/package support, or Stable qualification. Android evidence does not establish Linux acceptance and Linux development evidence does not establish Android acceptance.

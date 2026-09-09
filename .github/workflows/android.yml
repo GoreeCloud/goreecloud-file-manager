@@ -38,8 +38,8 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Unit tests
-        run: gradle :app:testDebugUnitTest
+      - name: Shared core and Android unit tests
+        run: gradle :core:test :app:testDebugUnitTest
 
       - name: Lint
         run: gradle :app:lintDebug
