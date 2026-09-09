@@ -2,7 +2,18 @@
 
 GoreeCloud File Manager is the original GoreeCloud-owned file-management application for browsing and controlling files across supported local, cloud, synchronized, removable, network, backup, and continuity contexts.
 
-> **Development status:** native Android application in active development. This repository is **not Stable or production accepted**. The current implementation now includes user-authorized Android document trees and a first capability-driven mutation slice, but the complete product scope described in the project specification is not yet implemented.
+> **Development status:** native Android application in active development. This repository is **not Stable or production accepted**. Linux and Android are now required first-class native product targets, but the current implemented and validated client remains Android-only; no Linux build, package, runtime provider, or Linux acceptance evidence exists yet.
+
+## Required native platforms
+
+GoreeCloud File Manager must support **Linux and Android** as first-class native platforms. Neither platform is a wrapper around the other.
+
+The product architecture must preserve a shared provider/resource identity model, capability semantics, operation safety, transfer verification, GoreeCloud authority boundaries, evidence semantics, and user-visible state while using platform-specific storage, permissions, lifecycle, input, packaging, and system integration.
+
+- **Android:** app-private storage, user-authorized Android document trees, scoped/least-privilege storage behavior, Android Open/Save/share integration, touch-first adaptive layouts, and Android lifecycle/permission semantics.
+- **Linux:** native desktop filesystem/provider integration, authorized paths and XDG locations, mounts/removable storage, Unix permissions/ownership, symbolic links, file associations/Open With, drag-and-drop, keyboard/pointer workflows, windows/tabs/dual-pane patterns, and supported network/provider integration.
+
+A Linux filesystem path, Android document/content URI, GoreeCloud Drive resource ID, and remote-provider identifier remain distinct provider-scoped identities. Cross-platform behavior must not pretend one platform's native identifier is universally valid on another.
 
 ## Current implementation
 
@@ -26,6 +37,8 @@ The repository currently provides:
 
 The current storage slice remains intentionally bounded. The backend has regular-file copy/move primitives, but the Android UI does not yet expose destination-selection copy/move workflows. Duplicate, user-facing file creation, multi-selection, unified Trash/recovery, recursive folder transfer, removable-storage-specific controls, network locations, GoreeCloud Drive, cross-device state, search/indexing, previews, sharing, and accepted platform-service runtime integrations remain implementation work.
 
+No Linux implementation is present in this repository yet. Linux support is a required product target and must not be represented as implemented until source, build, packaging, runtime, and platform-specific acceptance evidence exist.
+
 ## Authorized Android storage model
 
 File Manager does not equate filesystem access with unrestricted device access.
@@ -38,7 +51,7 @@ Mutation actions are capability-driven. File Manager exposes create-folder, rena
 
 ## Product direction
 
-The target product is a unified file control center spanning traditional file management, search, previews, tags and collections, operations, storage intelligence, offline availability, sharing, synchronization, backup/recovery, Everkeep continuity, Privacy Shield privacy state, Wardveil security state, GoreeCloud Identity ownership/access state, and GoreeCloud Mesh coordination.
+The target product is a unified file control center spanning traditional file management, search, previews, tags and collections, operations, storage intelligence, offline availability, sharing, synchronization, backup/recovery, Everkeep continuity, Privacy Shield privacy state, Wardveil security state, GoreeCloud Identity ownership/access state, and GoreeCloud Mesh coordination across Linux and Android.
 
 Two non-negotiable product rules are already encoded in the architecture:
 
@@ -47,11 +60,13 @@ Two non-negotiable product rules are already encoded in the architecture:
 
 ## Native application model
 
-This is an original GoreeCloud-owned application. Complete third-party file-manager forks are not the product architecture. Mature operating-system APIs, Android/Jetpack components, standard protocols, codecs, libraries, and comparable narrowly justified foundations may be used where replacing them would reduce safety or compatibility.
+This is an original GoreeCloud-owned application. Complete third-party file-manager forks are not the product architecture. Mature operating-system APIs, Android/Jetpack components, Linux standards and libraries, standard protocols, codecs, and comparable narrowly justified foundations may be used where replacing them would reduce safety, compatibility, accessibility, interoperability, or maintainability.
+
+The cross-platform architecture must separate platform-neutral File Manager domain/provider/operation contracts from Android- and Linux-specific adapters. Platform-native behavior is required; Android storage semantics must not be imposed on Linux, and Linux path semantics must not be imposed on Android document providers.
 
 ## Mandatory GoreeCloud platform gates
 
-- **Glaze UI:** current target is **Glaze UI 2.0.0 Stable**. This repository has an application-side mapping foundation, but rendered/native accessibility and representative-device acceptance are not complete, so current-Stable conformance is not claimed.
+- **Glaze UI:** current governed target is **GLAZE UI V1.3 / 1.3.0 Stable**. This repository has an older application-side mapping foundation, but fresh Linux and Android rendered/native accessibility, adaptive/input, and representative-platform acceptance are not complete, so current-Stable conformance is not claimed.
 - **Wardveil Security:** integration is required for authoritative security state and applicable file/content protection. No broad “Protected by Wardveil” claim is made by this repository.
 - **Privacy Shield:** integration is required for privacy authorization, minimization, exposure state, and privacy-aware file workflows. Runtime acceptance is not yet established here.
 - **Everkeep:** integration is required for evidence-backed backup, recoverability, continuity, preservation, and portability state. Backup existence must not be equated with verified recoverability.
@@ -64,9 +79,9 @@ GoreeCloud Identity and GoreeCloud Mesh are also first-class platform authoritie
 - [FEATURES.md](FEATURES.md) — implemented and planned feature status
 - [BENEFITS.md](BENEFITS.md) — intended user and platform benefits
 - [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md) — product-quality objectives, not parity claims
-- [ARCHITECTURE.md](ARCHITECTURE.md) — native architecture, provider model, and authority boundaries
+- [ARCHITECTURE.md](ARCHITECTURE.md) — native architecture, provider model, platform split, and authority boundaries
 - [CONFORMANCE.md](CONFORMANCE.md) — current GoreeCloud platform-gate status
-- [USER-MANUAL.md](USER-MANUAL.md) — current user-facing Android behavior and limitations
+- [USER-MANUAL.md](USER-MANUAL.md) — current user-facing Android behavior, Linux availability boundary, and limitations
 
 The canonical project record and historical change log are maintained in Google Drive under `GoreeCloud/Projects` and `GoreeCloud/Changelogs`. The central user manual is maintained under `GoreeCloud/User Manuals`.
 
@@ -80,7 +95,7 @@ The canonical project record and historical change log are maintained in Google 
 - Java runtime target: 17
 - UI: Jetpack Compose / Material 3 with GoreeCloud Glaze UI application mapping
 
-Run validation with:
+Run current Android validation with:
 
 ```bash
 python3 scripts/validate_repository.py
@@ -88,6 +103,12 @@ gradle :app:testDebugUnitTest
 gradle :app:lintDebug
 gradle :app:assembleDebug
 ```
+
+## Linux implementation boundary
+
+Linux engineering is the next cross-platform expansion. The planned sequence is to preserve/extract platform-neutral provider, resource, operation, transfer, and evidence contracts; define a Linux application and filesystem-provider boundary; add Linux build/test CI; implement bounded local browsing and safe ordinary-file operations; then add desktop-native input, navigation, Open With, drag-and-drop, removable/mount handling, and common GoreeCloud integrations.
+
+Exact Linux package formats are intentionally not claimed yet. Packaging and distribution choices must be validated against GoreeCloud release requirements before Flatpak, AppImage, Debian, RPM, Snap, or another format is called supported.
 
 ## License
 
