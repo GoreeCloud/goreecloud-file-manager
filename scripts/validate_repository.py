@@ -12,9 +12,11 @@ required_root = [
     "BENEFITS.md",
     "COMPETITIVE-OBJECTIVES.md",
     "BRANDING.md",
-    "ARCHITECTURE.md",
-    "CONFORMANCE.md",
     "USER-MANUAL.md",
+    "SECURITY.md",
+    ".gitignore",
+    ".editorconfig",
+    "goreecloud.platform.yaml",
 ]
 required_source = [
     "app/src/main/AndroidManifest.xml",
@@ -35,13 +37,15 @@ for relative in required_root + required_source:
 
 readme = (ROOT / "README.md").read_text(encoding="utf-8")
 for required_text in [
-    "Glaze UI 2.0.0",
+    "GLAZE UI V1.3 / 1.3.0",
+    "Linux and Android",
     "Wardveil Security",
     "Privacy Shield",
     "Everkeep",
     "not Stable or production accepted",
     "user-authorized Android document trees",
     "persisted URI permissions",
+    "no Linux build",
 ]:
     if required_text not in readme:
         errors.append(f"README missing required current-state text: {required_text!r}")
@@ -97,10 +101,22 @@ architecture = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
 for required_text in [
     "Sync versus backup",
     "User-authorized Android document-tree provider",
-    "Recursive folder deletion",
+    "recursive folder deletion",
+    "Required Linux client architecture",
+    "Cross-platform resource identity",
 ]:
-    if required_text not in architecture:
+    if required_text.lower() not in architecture.lower():
         errors.append(f"ARCHITECTURE.md missing required architecture invariant: {required_text!r}")
+
+specifications = (ROOT / "SPECIFICATIONS.md").read_text(encoding="utf-8")
+for required_text in [
+    "Required native platforms: Linux and Android",
+    "Linux implementation status",
+    "Cross-platform resource identity",
+    "GLAZE UI V1.3 / 1.3.0",
+]:
+    if required_text not in specifications:
+        errors.append(f"SPECIFICATIONS.md missing required platform baseline: {required_text!r}")
 
 models = (ROOT / "app/src/main/java/com/goreecloud/filemanager/model/FileModels.kt").read_text(encoding="utf-8")
 for token in [
@@ -123,9 +139,21 @@ for required_text in [
     "Renaming",
     "Deleting files and folders",
     "not Stable or production accepted",
+    "Linux and Android",
+    "no Linux application build",
 ]:
-    if required_text not in manual:
+    if required_text.lower() not in manual.lower():
         errors.append(f"USER-MANUAL.md missing current user behavior: {required_text!r}")
+
+platform_contract = (ROOT / "goreecloud.platform.yaml").read_text(encoding="utf-8")
+for required_text in [
+    'glaze_ui_required: "1.3.0"',
+    'glaze-ui==1.3.0',
+    'supported_platforms:\n  - android',
+    'Linux is a required first-class File Manager target',
+]:
+    if required_text not in platform_contract:
+        errors.append(f"goreecloud.platform.yaml missing current platform truth: {required_text!r}")
 
 if errors:
     for error in errors:
