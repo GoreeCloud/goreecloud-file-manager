@@ -36,11 +36,13 @@ The repository currently provides:
 - a `:linux-client` JVM development module that consumes the shared core and establishes the initial Linux application/provider boundary without claiming a finished desktop application;
 - a bounded Linux local-filesystem provider rooted at one explicit directory, with provider-relative resource identity, path-escape rejection, symbolic-link visibility without traversal/mutation, and mutation capabilities withheld across detected mount/FileStore boundaries;
 - Linux create-file, create-folder, rename, ordinary-file read/write, shared verified copy/move participation, and empty-only folder deletion primitives within that bounded provider;
-- a non-production Linux command-line development harness that performs an explicit-root read-only listing so the provider/build boundary can be exercised independently of a future desktop Glaze UI shell;
+- read-only Linux location-candidate discovery for Home, supported XDG user directories, mounted filesystems, and removable-media candidates; every discovered location still requires explicit selection before a provider exists;
+- a non-production Linux command-line development harness that performs either an explicit-root read-only listing or a read-only `--locations` candidate report so the provider/discovery/build boundaries can be exercised independently of a future desktop Glaze UI shell;
 - repository validation plus independent Android and Linux development workflow definitions; exact-head workflow results remain the acceptance evidence for each candidate revision;
+- a repository `FEATURE-ROADMAP.md` synchronized with the central GoreeCloud File Manager feature-roadmap control;
 - a repository `USER-MANUAL.md` synchronized with the central GoreeCloud User Manual requirement.
 
-The current storage slice remains intentionally bounded. The Android backend has regular-file copy/move primitives, but the Android UI does not yet expose destination-selection copy/move workflows. The Linux source is a development provider/harness, not the accepted native desktop experience. Duplicate, user-facing file creation on Android, multi-selection, unified Trash/recovery, recursive folder transfer, removable-storage-specific controls, network locations, GoreeCloud Drive, cross-device state, search/indexing, previews, sharing, and accepted platform-service runtime integrations remain implementation work.
+The current storage slice remains intentionally bounded. The Android backend has regular-file copy/move primitives, but the Android UI does not yet expose destination-selection copy/move workflows. The Linux source is a development provider/discovery/harness foundation, not the accepted native desktop experience. Duplicate, user-facing file creation on Android, multi-selection, unified Trash/recovery, recursive folder transfer, removable-storage lifecycle/safe-eject controls, network-provider workflows, GoreeCloud Drive, cross-device state, search/indexing, previews, sharing, and accepted platform-service runtime integrations remain implementation work.
 
 ## Linux development boundary
 
@@ -57,9 +59,13 @@ The current Linux provider:
 - reuses the shared SHA-256-verified transfer service;
 - refuses recursive folder deletion and recursive folder transfer.
 
-The current Linux harness is intentionally read-only at its user-facing command surface. It exists to validate the provider/application boundary and JVM distribution mechanics before a desktop UI toolkit, desktop integration, package format, supported-distribution matrix, or release channel is accepted.
+The current Linux location-discovery layer is **read-only metadata discovery, not authorization**. It can report Home, recognized XDG user directories, user-facing mount points from `/proc/self/mountinfo`, and `/media` or `/run/media` paths as removable-media candidates. XDG parsing expands only literal `$HOME` / `${HOME}` forms or accepts explicit absolute paths; it does not execute shell expressions. Candidate directories must exist and must not themselves be symbolic links. A mount path being classified as a removable-media candidate does not prove that the device is removable, safe to eject, or authorized for mutation.
 
-A passing Linux development workflow would establish exact-revision source/build/test evidence for this bounded development slice only. It would **not** by itself make Linux a supported platform in `goreecloud.platform.yaml`, establish production packaging, prove desktop accessibility/input integration, or permit a Stable claim.
+Every discovery result carries an explicit-selection requirement. Discovery does not construct `LinuxFileRepository`, grant file access, or widen the provider root. The existing provider remains the only current Linux file-access boundary.
+
+The current Linux harness is intentionally read-only at its user-facing command surface. Explicit-root mode lists one selected provider root. `--locations` prints read-only discovery candidates without granting provider authorization. The harness exists to validate the provider/discovery/application boundary and JVM distribution mechanics before a desktop UI toolkit, user-facing location policy, mount lifecycle/safe-eject integration, package format, supported-distribution matrix, or release channel is accepted.
+
+A passing Linux development workflow establishes exact-revision source/build/test evidence for this bounded development slice only. It does **not** by itself make Linux a supported platform in `goreecloud.platform.yaml`, establish production packaging, prove desktop accessibility/input integration, or permit a Stable claim.
 
 ## Authorized Android storage model
 
@@ -101,13 +107,14 @@ GoreeCloud Identity and GoreeCloud Mesh are also first-class platform authoritie
 
 - [SPECIFICATIONS.md](SPECIFICATIONS.md) — application specification and current technical baseline
 - [FEATURES.md](FEATURES.md) — implemented and planned feature status
+- [FEATURE-ROADMAP.md](FEATURE-ROADMAP.md) — active feature obligations, priority, dependency/acceptance state, and Drive-roadmap synchronization control
 - [BENEFITS.md](BENEFITS.md) — intended user and platform benefits
 - [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md) — product-quality objectives, not parity claims
 - [ARCHITECTURE.md](ARCHITECTURE.md) — native architecture, provider model, platform split, and authority boundaries
 - [CONFORMANCE.md](CONFORMANCE.md) — current GoreeCloud platform-gate status
 - [USER-MANUAL.md](USER-MANUAL.md) — current Android behavior plus the bounded Linux development-harness availability boundary
 
-The canonical project record and historical change log are maintained in Google Drive under `GoreeCloud/Projects` and `GoreeCloud/Changelogs`. The central user manual is maintained under `GoreeCloud/User Manuals`.
+The canonical project record and historical change log are maintained in Google Drive under `GoreeCloud/Projects` and `GoreeCloud/Changelogs`. The central feature roadmap is maintained under `GoreeCloud/Feature Roadmap/GoreeCloud File Manager`, and the central user manual is maintained under `GoreeCloud/User Manuals`.
 
 ## Android development baseline
 
@@ -130,7 +137,7 @@ gradle :app:assembleDebug
 
 ## Linux development baseline
 
-The current Linux source baseline is JVM/Kotlin 17 and consumes the same `:core` module as Android. This is a development architecture choice for the provider/harness slice, not an accepted statement that the eventual native desktop UI or package must use a particular toolkit.
+The current Linux source baseline is JVM/Kotlin 17 and consumes the same `:core` module as Android. This is a development architecture choice for the provider/discovery/harness slice, not an accepted statement that the eventual native desktop UI or package must use a particular toolkit.
 
 Run the bounded Linux development checks with:
 
@@ -139,7 +146,10 @@ python3 scripts/validate_repository.py
 gradle :core:test :linux-client:test
 gradle :linux-client:installDist :linux-client:distTar
 ./linux-client/build/install/linux-client/bin/linux-client /an/explicit/root
+./linux-client/build/install/linux-client/bin/linux-client --locations
 ```
+
+The explicit-root command performs a read-only provider listing. `--locations` performs read-only location-candidate discovery and does not grant provider authorization.
 
 Exact Linux package formats are intentionally not claimed yet. The generated Gradle distribution is development evidence, not a supported Debian, Flatpak, AppImage, RPM, Snap, or other production package. Packaging and distribution choices must be validated against GoreeCloud release requirements before any format is called supported.
 
