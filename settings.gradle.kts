@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "GoreeCloudFileManager"
-include(":app", ":core")
+include(":app", ":core", ":linux-client")
