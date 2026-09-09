@@ -20,7 +20,7 @@ The current development milestone therefore distinguishes three levels of truth:
 | Android storage authorization | Least-privilege, provider-bounded access | App-private confinement plus user-selected persisted document trees implemented | In progress |
 | Linux filesystem/provider integration | Native bounded Linux filesystem/provider behavior | Explicit-root provider source, symlink/path/mount safeguards, tests, harness, and Linux workflow definition present; broader desktop/provider acceptance incomplete | In progress / blocked for production |
 | Core file operations | Safe, capability-aware, reconcilable operations | Bounded mutation + SHA-256-verified ordinary-file transfer foundation; complete UI/Trash/recursive workflows incomplete | Blocked |
-| Glaze UI | GLAZE UI V1.3 / 1.3.0 Stable | Android mapping predates current target; Linux harness has no desktop Glaze UI; fresh Linux/Android conformance evidence absent | Blocked |
+| Glaze UI | GLAZE UI V1.3 / 1.3.0 Stable | Central Platform Contract baseline is V1.3; Android mapping still requires current consumer migration/acceptance and Linux harness has no desktop Glaze UI | Blocked |
 | Wardveil Security | Current approved Wardveil contracts | Adapter boundary only; no accepted runtime evidence | Blocked |
 | Privacy Shield | Current approved Privacy Shield contract/runtime authority | Adapter boundary only; no accepted runtime evidence | Blocked |
 | Everkeep | Current approved continuity/recovery contract | Adapter boundary only; no accepted runtime evidence | Blocked |
@@ -81,7 +81,7 @@ File Manager may claim current-Stable Glaze UI alignment only after its exact re
 
 The current Android source's historical Glaze mapping foundation is not a conformance certificate and cannot be relabeled as V1.3 acceptance without fresh migration evidence. The Linux command-line development harness is not a desktop Glaze UI surface and supplies no visual/accessibility conformance evidence.
 
-The repository's shared Platform Contract validator is currently pinned to an older immutable central implementation whose Glaze baseline is stale relative to the canonical V1.3 requirement. File Manager must not downgrade its truthful `1.3.0` requirement merely to satisfy that stale validator; the central contract discrepancy is tracked separately and remains a validation blocker until the authoritative shared validator is reconciled and the repository pin is intentionally upgraded.
+The authoritative central Platform Contract has been reconciled to GLAZE UI V1.3 / `1.3.0` at merged immutable revision `235e519fe342d7e7075c8239fbf0f3a19dc4c6c8`. File Manager's reusable Platform Contract workflow is pinned to that exact revision. This resolves the stale shared-validator baseline mismatch; it does **not** establish File Manager's rendered/native Glaze UI acceptance, which remains independently blocked on application-specific migration and evidence.
 
 ## Wardveil claim rules
 
@@ -121,6 +121,6 @@ Current Linux development workflow checks include:
 - distribution SHA-256 digest;
 - an evidence file stating that the artifact is not an accepted Linux desktop package or Stable release.
 
-The shared Platform Contract workflow remains an independent required gate. Its current Glaze-baseline failure must be resolved in the authoritative central contract rather than suppressed locally.
+The shared Platform Contract workflow remains an independent required gate and is pinned to the accepted central V1.3 validator revision. A successful manifest/conformance run proves only the Platform Contract checks performed for that exact caller revision; it does not upgrade application-specific Glaze UI, security, privacy, recovery, Linux desktop, or Stable acceptance.
 
 Passing source/build checks establishes only the checks actually performed for that exact revision. It does not establish platform-runtime production acceptance, representative-platform compatibility, production signing/deployment, Linux desktop UI/package support, complete Platform-System integration, or Stable qualification.
