@@ -5,6 +5,7 @@ import java.time.Instant
 enum class FileItemType {
     FILE,
     FOLDER,
+    SYMLINK,
 }
 
 enum class FileLocationKind {
@@ -32,6 +33,7 @@ enum class FileCapability {
 enum class StorageAuthorizationKind {
     APP_PRIVATE,
     USER_SELECTED_PERSISTED,
+    PLATFORM_LOCAL_FILESYSTEM,
 }
 
 data class StorageProviderDescriptor(
