@@ -4,6 +4,7 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+PLATFORM_CONTRACT_REVISION = "235e519fe342d7e7075c8239fbf0f3a19dc4c6c8"
 
 required_root = [
     "README.md",
@@ -24,6 +25,7 @@ required_root = [
     "linux-client/build.gradle.kts",
     ".github/workflows/android.yml",
     ".github/workflows/linux.yml",
+    ".github/workflows/platform-contract.yml",
 ]
 required_source = [
     "app/src/main/AndroidManifest.xml",
@@ -97,6 +99,17 @@ for required_text in [
     if required_text not in linux_workflow:
         errors.append(f"Linux workflow missing development validation boundary: {required_text!r}")
 
+platform_workflow = (ROOT / ".github/workflows/platform-contract.yml").read_text(encoding="utf-8")
+required_platform_pin = (
+    "GoreeCloud/GoreeCloud/.github/workflows/reusable-platform-manifest.yml@"
+    + PLATFORM_CONTRACT_REVISION
+)
+if required_platform_pin not in platform_workflow:
+    errors.append(
+        "Platform Contract workflow must pin the accepted Glaze V1.3 central validator revision "
+        + PLATFORM_CONTRACT_REVISION
+    )
+
 readme = (ROOT / "README.md").read_text(encoding="utf-8")
 for required_text in [
     "GLAZE UI V1.3 / 1.3.0",
@@ -107,6 +120,7 @@ for required_text in [
     "not Stable or production accepted",
     "user-authorized Android document trees",
     "persisted URI permissions",
+    "Linux development boundary",
 ]:
     if required_text not in readme:
         errors.append(f"README missing required current-state text: {required_text!r}")
@@ -163,8 +177,9 @@ for required_text in [
     "Sync versus backup",
     "User-authorized Android document-tree provider",
     "recursive folder deletion",
-    "Required Linux client architecture",
+    "Linux client architecture",
     "Cross-platform resource identity",
+    "LinuxFileRepository",
 ]:
     if required_text.lower() not in architecture.lower():
         errors.append(f"ARCHITECTURE.md missing required architecture invariant: {required_text!r}")
@@ -176,6 +191,7 @@ for required_text in [
     "Linux implementation status",
     "Cross-platform resource identity",
     "GLAZE UI V1.3 / 1.3.0",
+    "Current Linux development storage baseline",
 ]:
     if required_text not in specifications:
         errors.append(f"SPECIFICATIONS.md missing required platform baseline: {required_text!r}")
@@ -254,9 +270,19 @@ for required_text in [
     "Deleting files and folders",
     "not Stable or production accepted",
     "Linux and Android",
+    "Linux development harness",
 ]:
     if required_text.lower() not in manual.lower():
         errors.append(f"USER-MANUAL.md missing current user behavior: {required_text!r}")
+
+conformance = (ROOT / "CONFORMANCE.md").read_text(encoding="utf-8")
+for required_text in [
+    "bounded Linux-provider development",
+    "goreecloud.platform.yaml",
+    "Platform Contract workflow remains an independent required gate",
+]:
+    if required_text.lower() not in conformance.lower():
+        errors.append(f"CONFORMANCE.md missing current acceptance boundary: {required_text!r}")
 
 platform_contract = (ROOT / "goreecloud.platform.yaml").read_text(encoding="utf-8")
 for required_text in [
