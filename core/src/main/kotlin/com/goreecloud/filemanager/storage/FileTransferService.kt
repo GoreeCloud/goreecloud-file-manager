@@ -87,15 +87,18 @@ class FileTransferService(
             )
         }
 
+        // The provider-returned resource identity is authoritative for the newly created file.
+        // A same-name fallback could select and later delete an unrelated pre-existing resource on
+        // providers that permit duplicate display names or expose the new item with delayed listing.
         val verifiedEntry = runCatching {
             destinationProvider.list(destination)
                 .firstOrNull { it.resourceId == createdEntry.resourceId }
-                ?: destinationProvider.list(destination)
-                    .firstOrNull { it.displayName == FileNamePolicy.normalize(newName) }
         }.getOrNull()
 
         if (verifiedEntry == null || (source.sizeBytes != null && verifiedEntry.sizeBytes != source.sizeBytes)) {
-            destinationProvider.delete(verifiedEntry ?: createdEntry)
+            // Cleanup is attempted only against the exact identity returned by createFile. Never
+            // substitute another resource merely because its display name matches the requested name.
+            destinationProvider.delete(createdEntry)
             return FileOperationResult(
                 FileOperationOutcome.FAILED,
                 "The destination file could not be verified after transfer.",
