@@ -38,6 +38,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -79,7 +87,19 @@ private fun LinuxDesktopDevelopmentApp(controller: LinuxDesktopController) {
     MaterialTheme(
         colorScheme = if (dark) goreeCloudDarkScheme() else goreeCloudLightScheme(),
     ) {
-        Surface(modifier = Modifier.fillMaxSize()) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .onPreviewKeyEvent { event ->
+                    handleDesktopShortcut(
+                        event = event,
+                        state = state,
+                        onBack = { state = controller.navigateBack() },
+                        onRefresh = { state = controller.refreshCurrent() },
+                        onLocations = { state = controller.returnToLocations() },
+                    )
+                },
+        ) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val showInspector = maxWidth >= 1180.dp && state.currentLocation != null
                 val sidebarWidth = if (maxWidth >= 980.dp) 284.dp else 232.dp
@@ -310,6 +330,11 @@ private fun LocationWelcome(state: LinuxDesktopState, modifier: Modifier = Modif
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Text(
+                        "Keyboard: F5 refreshes the current view. After opening a location, Alt+Left navigates back and Esc returns to Locations.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -358,7 +383,17 @@ private fun FileRow(entry: FileEntry, onOpenFolder: (FileEntry) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (openable) Modifier.clickable { onOpenFolder(entry) } else Modifier)
+            .then(
+                if (openable) {
+                    Modifier.clickable(
+                        onClickLabel = "Open folder",
+                        role = Role.Button,
+                        onClick = { onOpenFolder(entry) },
+                    )
+                } else {
+                    Modifier
+                },
+            )
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -436,6 +471,32 @@ private fun StatusBar(state: LinuxDesktopState) {
             style = MaterialTheme.typography.bodySmall,
             color = if (error != null) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+private fun handleDesktopShortcut(
+    event: KeyEvent,
+    state: LinuxDesktopState,
+    onBack: () -> Unit,
+    onRefresh: () -> Unit,
+    onLocations: () -> Unit,
+): Boolean {
+    if (event.type != KeyEventType.KeyDown) return false
+
+    return when {
+        event.key == Key.DirectionLeft && event.isAltPressed && state.canNavigateBack -> {
+            onBack()
+            true
+        }
+        event.key == Key.F5 -> {
+            onRefresh()
+            true
+        }
+        event.key == Key.Escape && state.currentLocation != null -> {
+            onLocations()
+            true
+        }
+        else -> false
     }
 }
 
