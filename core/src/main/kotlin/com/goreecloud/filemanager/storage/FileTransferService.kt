@@ -95,7 +95,11 @@ class FileTransferService(
                 .firstOrNull { it.resourceId == createdEntry.resourceId }
         }.getOrNull()
 
-        if (verifiedEntry == null || (source.sizeBytes != null && verifiedEntry.sizeBytes != source.sizeBytes)) {
+        val knownSizeMismatch = verifiedEntry != null &&
+            source.sizeBytes != null &&
+            verifiedEntry.sizeBytes != null &&
+            verifiedEntry.sizeBytes != source.sizeBytes
+        if (verifiedEntry == null || knownSizeMismatch) {
             // Cleanup is attempted only against the exact identity returned by createFile. Never
             // substitute another resource merely because its display name matches the requested name.
             destinationProvider.delete(createdEntry)
@@ -105,6 +109,8 @@ class FileTransferService(
             )
         }
 
+        // Size metadata is an optional early consistency signal. A provider that does not expose a
+        // destination size can still be verified through the authoritative byte-level SHA-256 check.
         val destinationDigest = runCatching {
             val input = destinationProvider.openRead(verifiedEntry)
                 ?: error("destination verification stream unavailable")
