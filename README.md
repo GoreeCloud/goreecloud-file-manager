@@ -75,7 +75,7 @@ The desktop composition follows the current GLAZE UI V1.3 direction at source/de
 Run the development surface from a Linux graphical session with:
 
 ```bash
-gradle :linux-client:runDesktopDevelopment
+gradle :linux-desktop:runDevelopment
 ```
 
 This command is a developer workflow, not a supported Linux installation or release procedure.
@@ -172,7 +172,7 @@ gradle :linux-client:installDist :linux-client:distTar
 Run the non-production desktop surface from a Linux graphical session with:
 
 ```bash
-gradle :linux-client:runDesktopDevelopment
+gradle :linux-desktop:runDevelopment
 ```
 
 The explicit-root command performs a read-only provider listing. `--locations` performs read-only location-candidate discovery and does not grant provider authorization. The graphical development surface also keeps discovery and provider construction separate and exposes read-only browsing only.
