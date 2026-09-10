@@ -49,17 +49,48 @@ class LinuxDesktopController(
     fun refreshCandidates(): LinuxDesktopState {
         val discovered = runCatching { discoverLocations() }
             .getOrElse {
-                state = state.copy(
-                    candidates = emptyList(),
-                    highlightedCandidate = null,
-                    errorMessage = "Linux locations could not be discovered.",
-                )
+                if (state.authorizedCandidate != null) {
+                    closeAuthorizedProvider(
+                        candidates = emptyList(),
+                        highlightedCandidate = null,
+                        statusMessage = "The previously opened Linux provider was closed because location discovery could not be refreshed.",
+                        errorMessage = "Linux locations could not be rediscovered. Select and explicitly open a location again after discovery recovers.",
+                    )
+                } else {
+                    state = state.copy(
+                        candidates = emptyList(),
+                        highlightedCandidate = null,
+                        errorMessage = "Linux locations could not be discovered.",
+                    )
+                }
                 return state
             }
             .distinctBy { it.path.toAbsolutePath().normalize().toString() }
 
         val highlighted = state.highlightedCandidate?.let { previous ->
             discovered.firstOrNull { sameCandidate(it, previous) }
+        }
+
+        val authorized = state.authorizedCandidate
+        if (authorized != null) {
+            val refreshedAuthorized = discovered.firstOrNull { sameCandidate(it, authorized) }
+            if (refreshedAuthorized == null || !sameAuthorizationIdentity(refreshedAuthorized, authorized)) {
+                closeAuthorizedProvider(
+                    candidates = discovered,
+                    highlightedCandidate = highlighted,
+                    statusMessage = "The previously opened Linux provider was closed because its discovered location identity changed or disappeared.",
+                    errorMessage = "The opened Linux location is no longer the same discovered location. Review the current candidate and choose Open location again.",
+                )
+                return state
+            }
+
+            state = state.copy(
+                candidates = discovered,
+                highlightedCandidate = highlighted,
+                authorizedCandidate = refreshedAuthorized,
+                errorMessage = null,
+            )
+            return state
         }
 
         state = state.copy(
@@ -216,6 +247,43 @@ class LinuxDesktopController(
             errorMessage = null,
         )
         return state
+    }
+
+    private fun closeAuthorizedProvider(
+        candidates: List<LinuxLocationCandidate>,
+        highlightedCandidate: LinuxLocationCandidate?,
+        statusMessage: String,
+        errorMessage: String,
+    ) {
+        provider = null
+        history.clear()
+        state = state.copy(
+            candidates = candidates,
+            highlightedCandidate = highlightedCandidate,
+            authorizedCandidate = null,
+            providerId = null,
+            currentLocation = null,
+            entries = emptyList(),
+            canNavigateBack = false,
+            statusMessage = statusMessage,
+            errorMessage = errorMessage,
+        )
+    }
+
+    private fun sameAuthorizationIdentity(
+        first: LinuxLocationCandidate,
+        second: LinuxLocationCandidate,
+    ): Boolean {
+        if (!sameCandidate(first, second) || first.kind != second.kind) return false
+        return when (first.kind) {
+            LinuxLocationCandidateKind.MOUNTED_FILESYSTEM,
+            LinuxLocationCandidateKind.REMOVABLE_MEDIA_CANDIDATE,
+            -> first.filesystemType == second.filesystemType &&
+                first.filesystemSource == second.filesystemSource
+            LinuxLocationCandidateKind.HOME,
+            LinuxLocationCandidateKind.XDG_USER_DIRECTORY,
+            -> true
+        }
     }
 
     private fun sameCandidate(first: LinuxLocationCandidate, second: LinuxLocationCandidate): Boolean =
