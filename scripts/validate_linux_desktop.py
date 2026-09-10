@@ -61,7 +61,7 @@ require_text(
         "Linux Development · GLAZE UI V1.3 target · conformance pending",
         "Discovery is not authorization",
         "controller.openHighlightedCandidate()",
-        "read-only desktop browsing",
+        "Read-only desktop browsing",
         "Existing provider mutation primitives are intentionally not surfaced",
     ],
 )
