@@ -2,9 +2,9 @@
 
 ## Current availability
 
-GoreeCloud File Manager is required to support **Linux and Android** as first-class native platforms. The current native user-facing application is Android: it is a development APK and is **not Stable or production accepted**.
+GoreeCloud File Manager is required to support **Linux and Android** as first-class native platforms. Android remains the production-shaped native user-facing development application: it is a development APK and is **not Stable or production accepted**.
 
-A bounded Linux local-filesystem provider, read-only location-candidate discovery layer, and non-production command-line development harness now exist in source. They are engineering/validation surfaces, not the accepted GoreeCloud File Manager desktop application. There is currently **no accepted Linux desktop UI, supported Linux package, production Linux runtime, or Linux Stable acceptance**.
+Linux now has a bounded local-filesystem provider, read-only location-candidate discovery, a non-production command-line harness, and a separate **Linux desktop development surface** implemented with Compose Multiplatform Desktop. These remain engineering/validation surfaces. There is currently **no accepted Linux desktop client, supported Linux package, production Linux runtime, or Linux Stable acceptance**.
 
 Current Android development identity:
 
@@ -53,7 +53,7 @@ File Manager validates the requested name before sending the operation to the pr
 
 A successful message means File Manager received a successful provider result and refreshed the directory. Provider failures are surfaced instead of being silently converted into success.
 
-The Linux development provider also contains a bounded create-folder primitive for testing inside its selected root, but the current Linux command-line harness intentionally does not expose a user-facing create command.
+The Linux development provider also contains a bounded create-folder primitive for testing inside its selected root, but neither current Linux development user surface exposes create-folder as a user action.
 
 ## Renaming
 
@@ -61,7 +61,7 @@ When an Android item supports rename, open its overflow menu and choose **Rename
 
 File Manager validates the new name and asks the exact selected storage provider to perform the rename. For the app-private provider, conflicting names are rejected before mutation. Android document providers remain authoritative for any additional provider-specific naming and conflict rules.
 
-The Linux development provider contains a bounded rename primitive, but it is not currently exposed as a production desktop workflow.
+The Linux development provider contains a bounded rename primitive, but it is not exposed by the Linux desktop development surface or command-line harness.
 
 ## Deleting files and folders
 
@@ -69,7 +69,7 @@ When an Android item supports delete, open its overflow menu and choose **Delete
 
 The current development slice deliberately refuses recursive folder deletion. A folder must be empty before File Manager will request deletion. This prevents an early development build from recursively deleting a directory tree through a provider without the later Trash, backup, Everkeep, and destructive-operation safeguards.
 
-The Linux development provider enforces the same empty-folder-only boundary and rejects mutation of its provider root. Its command-line harness remains read-only and does not expose deletion to a user.
+The Linux development provider enforces the same empty-folder-only boundary and rejects mutation of its provider root. Current Linux user-facing development surfaces remain read-only and do not expose deletion.
 
 Deletion currently uses the selected provider's delete operation. File Manager does not yet claim a unified Trash workflow or verified recovery for these operations.
 
@@ -81,9 +81,9 @@ The current capability model includes read, child listing, create file, create f
 
 The shared backend contains verified ordinary-file transfer primitives. Complete destination-selection copy/move UI, recursive transfer, multi-selection, and complete file-creation/duplicate workflows remain development work.
 
-## Linux development harness
+## Linux command-line development harness
 
-Linux is a required File Manager product platform. The current repository contains a development-only JVM harness for validating the initial Linux provider, location-discovery, and application boundaries before a native desktop UI and supported package exist.
+Linux is a required File Manager product platform. The repository retains a development-only JVM command-line harness for validating the Linux provider, location-discovery, and headless build boundaries separately from the graphical desktop surface.
 
 The explicit-root mode accepts exactly one root directory and performs a read-only listing:
 
@@ -103,7 +103,37 @@ The location-discovery mode performs a read-only report of Linux location candid
 
 XDG discovery reads `user-dirs.dirs`. It expands only literal `$HOME` / `${HOME}` values or accepts explicit absolute paths; it does not execute shell expressions. Candidate directories must exist and cannot themselves be symbolic links in the current discovery slice. Mount candidates are read from Linux mount metadata and are filtered to avoid ordinary pseudo/system-only mount surfaces.
 
-These are developer workflows, not supported Linux installation procedures or accepted desktop location UX.
+## Linux desktop development surface
+
+The repository also contains a separate `:linux-desktop` presentation module. From a Linux graphical development session, run:
+
+```bash
+gradle :linux-desktop:runDevelopment
+```
+
+This command launches **GoreeCloud File Manager — Linux Development**. It is a developer workflow, not a supported installation or production launcher.
+
+The left sidebar initially shows read-only location candidates discovered from Home, supported XDG user directories, and accepted mount-candidate rules. Clicking a candidate only highlights it. That action does not create a provider or authorize access.
+
+To begin browsing, choose a candidate and then choose **Open location**. Only this explicit action may create the bounded `LinuxFileRepository` for that selected root. If provider creation or initial listing fails, File Manager reports the failure and leaves no provider authorized in the desktop controller.
+
+After a location opens, the current desktop surface can:
+
+- list files, folders, and symbolic-link entries from the selected provider;
+- enter ordinary folders belonging to that same provider;
+- navigate back through the current provider-scoped folder history;
+- refresh the current directory;
+- return to **Locations**, which closes the desktop controller's active provider/current-location state;
+- show selected-root/provider/current-folder context in the wider-window inspector;
+- keep symbolic links visible while explicitly showing that traversal remains disabled.
+
+The desktop UI intentionally exposes **read-only browsing only** in this milestone. Existing provider create, rename, write, copy/move, and delete primitives are not presented as desktop actions yet.
+
+The current source composition uses a desktop-specific edge location sidebar, toolbar, solid file-content plane, contextual inspector, and clear status/error presentation. It targets **GLAZE UI V1.3 / 1.3.0**, but source compilation does not establish rendered/native Glaze conformance. Representative desktop rendering, keyboard/pointer behavior, focus, assistive-technology behavior, reduced transparency/contrast/motion, scaling, accessibility, safe-eject behavior, supported package formats, signing, and release acceptance remain separate work.
+
+This development surface **does not establish Linux Stable acceptance** and does not add Linux to `goreecloud.platform.yaml` `supported_platforms`.
+
+## Current Linux provider boundary
 
 The current Linux provider applies these boundaries:
 
@@ -114,11 +144,11 @@ The current Linux provider applies these boundaries:
 - mutation capability is withheld when a detected `FileStore`/mount boundary differs from the selected root;
 - create, rename, write, copy/move, and delete primitives remain bounded by operating-system permissions and provider capabilities;
 - recursive folder deletion and recursive folder transfer are refused;
-- the command-line harness itself remains read-only.
+- both current Linux development user surfaces remain read-only.
 
-The Linux desktop destination still requires a user-facing XDG location/navigation experience, mount/removable-media lifecycle and safe-eject UX, Unix ownership/permission presentation and policy, file associations/Open With, drag-and-drop, clipboard operations, keyboard/pointer navigation, windows/tabs/dual-pane behavior, network/provider locations, native accessibility, a Glaze UI desktop surface, accepted packaging, and representative runtime acceptance.
+Linux still requires accepted mount/removable-media lifecycle and safe-eject UX, Unix ownership/permission presentation and policy, file associations/Open With, drag-and-drop, clipboard operations, complete keyboard/pointer navigation and accessibility, windows/tabs/dual-pane behavior, network/provider locations, current Glaze conformance, supported packaging, and representative runtime acceptance.
 
-No Debian, Flatpak, AppImage, RPM, Snap, desktop environment, or distribution should be treated as supported from the current development JVM distribution.
+No Debian, Flatpak, AppImage, RPM, Snap, desktop environment, or distribution should be treated as supported from the current development source or JVM distribution.
 
 ## GoreeCloud platform status
 
@@ -138,15 +168,15 @@ Unknown, unavailable, stale, or unverified platform evidence must remain visible
 
 The current Android development build does not yet provide complete copy/move/duplicate workflows, user-facing file creation, multi-selection, universal search, previews, tags, collections, sharing, GoreeCloud Drive runtime access, GoreeCloud Sync runtime access, unified Trash, version history, Operations Center, verified backup/Everkeep recovery, Wardveil runtime scanning evidence, Privacy Shield runtime authorization, production Identity/Mesh integration, system-wide GoreeCloud file-picker registration, production signing, store distribution, or Stable qualification.
 
-The Linux development source does not yet provide a native desktop Glaze UI application, user-facing XDG/home-location navigation, supported mount/removable-media lifecycle or safe-eject workflows, file associations/Open With, drag-and-drop/clipboard integration, windows/tabs/dual-pane UI, network providers, accepted package formats, production signing/distribution, representative desktop/distribution acceptance, or production/Stable runtime status.
+The Linux development source now provides a native graphical **development** surface for explicit location selection and read-only browsing, but not an accepted production desktop client. It still lacks accepted mutation UX, mount/removable-media lifecycle and safe-eject workflows, ownership/permission UX, file associations/Open With, drag-and-drop/clipboard integration, complete keyboard/pointer/accessibility acceptance, windows/tabs/dual-pane UI, network providers, accepted package formats, production signing/distribution, representative desktop/distribution acceptance, or production/Stable runtime status.
 
-**GLAZE UI V1.3 / 1.3.0** is the current governed design-system target, but platform-specific visual, accessibility, input, responsiveness, performance, and current-Stable conformance acceptance remain required. The Linux command-line development harness is not Glaze UI conformance evidence.
+**GLAZE UI V1.3 / 1.3.0** is the current governed design-system target, but platform-specific visual, accessibility, input, responsiveness, performance, and current-Stable conformance acceptance remain required. Linux desktop source compilation is not Glaze conformance evidence.
 
 ## Reporting development problems
 
 For the Android build, include the File Manager version, Android version, device model, storage-provider type, the operation attempted, expected result, and observed result.
 
-For the Linux development harness/provider/discovery layer, include the exact source revision, Linux distribution/kernel information, Java version, selected-root filesystem type where relevant, whether a symbolic link or mount boundary was involved, the command/test attempted, expected result, and observed result.
+For Linux, include the exact source revision, Linux distribution/kernel information, Java version, whether you used the CLI harness or desktop development surface, selected-root filesystem type where relevant, whether a symbolic link or mount boundary was involved, the command/action attempted, expected result, and observed result.
 
 Do not include passwords, tokens, private file contents, encryption keys, signing material, or other reusable secrets in bug reports.
 
@@ -156,6 +186,6 @@ A successful CI run proves only the checks performed by the workflow for the exa
 
 Android development validation covers repository validation, shared-core tests, Android unit tests, Android lint, APK assembly, package/application-label verification, and artifact publication.
 
-Linux development validation covers repository validation, shared-core/Linux-provider/location-discovery tests, JVM development-distribution construction, an explicit-root read-only harness smoke test, and artifact digest/boundary evidence.
+Linux development validation covers repository and Linux-desktop contract validation; shared-core/Linux-provider/location-discovery/desktop-controller tests; isolated `:linux-desktop` source compilation; the existing CLI JVM development-distribution construction; an explicit-root read-only harness smoke test; and artifact digest/boundary evidence.
 
-Neither workflow by itself establishes production security, privacy, recovery, accessibility, representative-platform compatibility, controlled signing/deployment, Linux desktop/package support, complete mount/removable-media lifecycle behavior, or Stable qualification. Android evidence does not establish Linux acceptance and Linux development evidence does not establish Android acceptance.
+Neither workflow by itself establishes production security, privacy, recovery, accessibility, representative-platform compatibility, controlled signing/deployment, supported Linux desktop/package status, complete mount/removable-media lifecycle behavior, or Stable qualification. Android evidence does not establish Linux acceptance and Linux development evidence does not establish Android acceptance.
