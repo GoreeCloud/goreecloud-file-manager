@@ -35,6 +35,20 @@ class FileTransferServiceTest {
     }
 
     @Test
+    fun copyUsesDigestWhenDestinationSizeMetadataIsUnavailable() {
+        val source = MemoryProvider("source")
+        val destination = MemoryProvider("destination", reportSize = false)
+        val sourceEntry = source.put("report.txt", "GoreeCloud".toByteArray())
+        val service = FileTransferService(mapOf(source.descriptor.id to source, destination.descriptor.id to destination))
+
+        val result = service.copy(sourceEntry, destination.root, "copy.txt")
+
+        assertEquals(FileOperationOutcome.SUCCEEDED, result.outcome)
+        assertArrayEquals("GoreeCloud".toByteArray(), destination.bytes("copy.txt"))
+        assertEquals(null, result.resultingEntry?.sizeBytes)
+    }
+
+    @Test
     fun moveDeletesSourceOnlyAfterVerifiedCopy() {
         val source = MemoryProvider("source")
         val destination = MemoryProvider("destination")
@@ -96,6 +110,7 @@ class FileTransferServiceTest {
         id: String,
         private val failDelete: Boolean = false,
         private val corruptOnWrite: Boolean = false,
+        private val reportSize: Boolean = true,
     ) : FileStorageProvider {
         private val files = linkedMapOf<String, ByteArray>()
 
@@ -177,7 +192,7 @@ class FileTransferServiceTest {
             displayName = name,
             type = FileItemType.FILE,
             locationKind = FileLocationKind.EXTERNAL,
-            sizeBytes = files[name]?.size?.toLong(),
+            sizeBytes = if (reportSize) files[name]?.size?.toLong() else null,
             modifiedAt = null,
             capabilities = setOf(
                 FileCapability.READ,
