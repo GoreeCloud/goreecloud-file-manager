@@ -38,8 +38,11 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Shared core and Linux provider tests
+      - name: Shared core, Linux provider, discovery, and desktop-controller tests
         run: gradle :core:test :linux-client:test
+
+      - name: Compile Linux Compose Desktop development surface
+        run: gradle :linux-client:classes
 
       - name: Build Linux JVM development distribution
         run: gradle :linux-client:installDist :linux-client:distTar
@@ -62,8 +65,10 @@ jobs:
           TAR="linux-client/build/distributions/linux-client.tar"
           test -f "$TAR"
           sha256sum "$TAR" | tee build-evidence/linux-client.tar.sha256
-          printf '%s\n' 'Development JVM distribution only; not an accepted Linux desktop package or Stable release.' \
-            | tee build-evidence/linux-development-boundary.txt
+          {
+            printf '%s\n' 'Development JVM distribution only; not an accepted Linux desktop package or Stable release.'
+            printf '%s\n' 'Desktop surface compilation is development evidence only; rendered/native accessibility, Glaze conformance, supported packaging, and Stable acceptance remain pending.'
+          } | tee build-evidence/linux-development-boundary.txt
 
       - name: Upload Linux development evidence
         uses: actions/upload-artifact@v4
