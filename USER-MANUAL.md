@@ -81,7 +81,7 @@ The current capability model includes read, child listing, create file, create f
 
 The shared backend contains verified ordinary-file transfer primitives. Complete destination-selection copy/move UI, recursive transfer, multi-selection, and complete file-creation/duplicate workflows remain development work.
 
-## Linux command-line development harness
+## Linux development harness — command line
 
 Linux is a required File Manager product platform. The repository retains a development-only JVM command-line harness for validating the Linux provider, location-discovery, and headless build boundaries separately from the graphical desktop surface.
 
