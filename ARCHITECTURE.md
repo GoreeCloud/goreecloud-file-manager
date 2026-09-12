@@ -2,47 +2,44 @@
 
 ## 1. Native product boundary
 
-GoreeCloud File Manager is an original GoreeCloud application. Android/Jetpack APIs, Linux platform standards/libraries, and other mature foundational components may be used, but product architecture, file-state semantics, application workflows, GoreeCloud integrations, and user experience remain GoreeCloud-owned.
+GoreeCloud File Manager is an original GoreeCloud-owned application. Android/Jetpack APIs, Linux platform standards/libraries, Compose Multiplatform Desktop, and other mature foundational components may be used, but product architecture, file-state semantics, workflows, GoreeCloud integrations, and user experience remain GoreeCloud-owned.
 
-Linux and Android are required first-class native product targets. Android is the current implemented native user-facing client. Linux source now establishes a bounded local-filesystem provider, a read-only location-candidate discovery layer, and a non-production JVM development harness, but those components are not the accepted native desktop application, supported package, or production runtime.
+Linux and Android are required first-class native product targets. Android is the current production-shaped native user-facing development client. Linux now has a bounded provider/discovery/controller layer plus a separate graphical desktop development presentation module. Neither the presence of Linux source nor successful development CI establishes a supported Linux package, production runtime, or Stable acceptance.
 
 ## 2. Layer model
 
 ```text
-Glaze UI application surfaces
-        ↓
-File Manager application/use cases
-        ↓
-Shared JVM :core
-  ├─ provider/resource identity + capability model
-  ├─ file/status/evidence model
-  ├─ filename policy
-  ├─ verified transfer service
-  └─ GoreeCloud authority adapter contracts
-        ↓
-Platform discovery/adapters ───────── Platform authority adapters
-        ↓                                      ↓
-Android app-private / SAF                 Sync / Backup / Everkeep
-Linux read-only location discovery        Privacy / Wardveil / Identity / Mesh
-Linux bounded filesystem provider
-Drive / Network / External (target)
+Platform-native presentation
+  Android :app                     Linux :linux-desktop
+  Jetpack Compose                  Compose Multiplatform Desktop
+        ↓                                  ↓
+Platform application/adapters
+  Android storage adapters         Linux :linux-client
+                                    ├─ location discovery
+                                    ├─ desktop controller
+                                    ├─ bounded filesystem provider
+                                    └─ CLI development harness
+        ↓                                  ↓
+                 Shared JVM :core
+                 ├─ provider/resource identity
+                 ├─ capability + operation outcomes
+                 ├─ file/status/evidence model
+                 ├─ filename policy
+                 ├─ verified transfer service
+                 └─ GoreeCloud authority adapter contracts
+                               ↓
+            GoreeCloud platform authorities
+      Drive / Sync / Backup / Everkeep / Privacy Shield
+             Wardveil / Identity / Mesh
 ```
 
-Storage providers own resource/location mechanics after authorization. Platform discovery may identify candidate locations but does not create provider authority. Platform authorities own their respective evidence and authorization domains. File Manager composes those results without transferring authority between them.
-
-The architecture keeps shared File Manager domain/provider/operation contracts independent from platform-native storage and presentation details. Android document URIs and Linux filesystem paths map into one provider model without being treated as equivalent native identifiers.
-
-The current Linux development harness intentionally sits below the eventual desktop presentation layer. It exists to exercise the Linux discovery/provider/build boundaries while the production desktop Glaze UI toolkit and packaging model remain unaccepted.
+The architecture keeps shared File Manager contracts independent from platform-native storage and presentation details. Android document/content URIs and Linux filesystem paths remain native identifiers scoped to their providers; they are not interchangeable representations of one universal path.
 
 ## 3. Provider contract
 
-Every storage provider exposes a `StorageProviderDescriptor`, a provider-scoped root `BrowserLocation`, child listing, and only the mutation methods it can actually support.
+Every storage provider exposes a `StorageProviderDescriptor`, a provider-scoped root `BrowserLocation`, child listing, and only the operations it can actually support.
 
-Each resource carries a provider ID plus a provider-scoped resource ID. File Manager does not assume that every resource has a normal filesystem path. This is required for Android document URIs, Linux paths with platform-specific semantics, GoreeCloud Drive resource IDs, network identifiers, and future providers.
-
-A Linux discovery candidate is not yet a provider resource. It becomes eligible for provider construction only after an explicit selection/authorization step appropriate to the desktop workflow. Discovery alone must not grant read, mutation, or traversal capability.
-
-The shared resource type distinguishes files, folders, and symbolic links. A symbolic-link representation is not itself permission to follow the target.
+Each resource carries a provider ID plus a provider-scoped resource ID. File Manager does not assume every resource has a normal filesystem path. This is required for Android document URIs, Linux filesystem resources, GoreeCloud Drive resources, network providers, synchronized-device representations, and future recovery records.
 
 Per-resource capabilities currently model:
 
@@ -57,96 +54,101 @@ COPY
 MOVE
 ```
 
-A capability is not a promise that every provider operation will succeed. It is a precondition for presenting the operation. The provider remains authoritative for execution and must return success, rejection, or failure without manufacturing certainty.
+A capability is a presentation/execution precondition, not a guarantee of success. The provider remains authoritative and returns typed success, rejection, or failure.
 
-## 4. Current Android providers
+## 4. Android storage architecture
 
 ### App-private provider
 
-`LocalFileRepository` is confined to the application's canonical private files root. Every requested filesystem resource is canonicalized and rejected if it escapes that root.
-
-The provider currently implements bounded listing and file operations represented by the shared provider contract. Recursive folder deletion is rejected.
+`LocalFileRepository` is confined to the application's canonical private files root. Requested resources are canonicalized and rejected if they escape that root.
 
 ### User-authorized Android document-tree provider
 
-`SafTreeFileRepository` consumes Android's Storage Access Framework / `DocumentsContract` after the user chooses a tree through the system picker.
+`SafTreeFileRepository` consumes Android Storage Access Framework / `DocumentsContract` resources only after the user selects a tree through the system picker.
 
-File Manager requests a persistable read permission and write permission where Android/provider policy permits it. Persisted URI permissions are used to reconstruct authorized locations on future starts. File Manager does not request unrestricted filesystem access for this path.
+File Manager requests persistable read permission and write permission where Android/provider policy permits it. Persisted URI permissions are used to reconstruct previously authorized locations. The selected tree remains bounded by its Android authority plus tree document ID, and child resources are accepted only when they remain within that tree boundary.
 
-The selected tree remains bounded by its Android tree document ID and authority. Child document URIs are accepted only when they remain inside that same tree boundary.
+Android provider flags are mapped into File Manager capabilities. A selected document tree is not blindly labeled local disk because a DocumentsProvider may represent local, removable, or remote/cloud-backed content.
 
-The provider queries each document's flags and maps them into File Manager capabilities. Mutation UI is therefore based on both persisted authorization and provider-reported support.
+## 5. Linux client architecture
 
-A selected Android document tree is intentionally not classified as ordinary local disk by default. Android DocumentsProviders may represent device storage, removable media, or remote/cloud-backed content.
+Linux uses its own provider/discovery/application adapters. It does not reuse Android storage APIs or translate Android URIs into fake filesystem paths.
 
-## 5. Linux client architecture — current development boundary and required destination
+### 5.1 `:linux-client` — provider, discovery, controller, and CLI layer
 
-Linux uses its own filesystem/provider adapter rather than reusing Android storage APIs or translating Android URIs into fake paths.
-
-### Current bounded provider
-
-`LinuxFileRepository` is the first source implementation of the Linux provider boundary. It is rooted at one explicitly supplied existing directory and maps Linux resources into the same shared provider-scoped identity, capability, operation-result, transfer-verification, and evidence model used by Android.
+`LinuxFileRepository` is the bounded Linux local-filesystem provider. It is rooted at one explicitly selected directory and maps Linux resources into shared provider-scoped identity, capability, result, transfer-verification, and evidence contracts.
 
 Current safety behavior is deliberately conservative:
 
-- the selected root is normalized, must be a directory, and cannot itself be a symbolic link;
-- provider resource IDs are relative to that selected root;
+- the selected root must exist, be a directory, and cannot itself be a symbolic link;
+- provider resource IDs are relative to the selected root;
 - normalized resource candidates that escape the root are rejected;
 - metadata is inspected with `LinkOption.NOFOLLOW_LINKS`;
 - symbolic links are visible as `SYMLINK` resources but receive no traversal or mutation capabilities in this slice;
-- provider traversal through a symbolic-link component is rejected;
+- traversal through symbolic-link components is rejected;
 - ordinary reads depend on operating-system readability;
-- create, rename, write, move-source deletion, and delete are permitted only where provider capability and operating-system writability allow them;
-- mutation capability is withheld when the resource resolves to a different `FileStore` than the selected root, preventing mount boundaries from silently broadening mutation authority before an accepted policy exists;
+- mutations depend on provider capabilities plus operating-system writability;
+- mutation capability is withheld when a resource resolves to a different `FileStore` than the selected root;
 - the provider root cannot be renamed or deleted;
-- recursive folder deletion is rejected; only empty folders may be deleted;
+- recursive folder deletion is rejected; only empty-folder deletion is implemented;
 - recursive folder transfer remains rejected by the shared transfer service;
-- ordinary files participate in the shared SHA-256-verified transfer service.
+- ordinary files can participate in the shared SHA-256-verified transfer service.
 
-This provider does not establish unrestricted Linux filesystem authority. The explicit root is a development scope, not an entitlement to crawl or mutate the rest of the host.
+The selected root is a development authorization scope, not entitlement to crawl or mutate the rest of the host filesystem.
 
-### Current read-only location discovery
+### 5.2 Linux location discovery
 
-`LinuxLocationDiscovery` is a pre-provider metadata layer. Its purpose is to identify conservative desktop location **candidates** without silently turning discovery into filesystem authorization.
+`LinuxLocationDiscovery` is a read-only pre-provider metadata layer. It may identify Home, supported XDG user directories, user-facing mount points, and removable-media candidates.
 
-Current discovery behavior:
+Discovery remains separate from authorization:
 
-- reports the current Home directory only when it exists as a non-symlink directory;
-- reads recognized XDG user-directory keys from `user-dirs.dirs` beneath an absolute `XDG_CONFIG_HOME` or the `$HOME/.config` fallback;
-- expands only literal `$HOME` / `${HOME}` XDG values and accepts explicit absolute paths;
-- rejects relative XDG paths and does not execute backticks, `$()` expressions, or other shell-variable forms;
-- parses `/proc/self/mountinfo`, including Linux octal mount-token escapes;
-- filters ordinary pseudo/system-only filesystem types and non-user-facing mount surfaces from the candidate set;
-- labels `/media` and `/run/media` paths as `REMOVABLE_MEDIA_CANDIDATE` rather than claiming confirmed hardware removability or ejectability;
-- includes only existing non-symlink candidate directories under the current checks;
-- collapses duplicate normalized candidate paths;
-- marks every candidate `requiresExplicitSelection = true`.
+- discovery does not construct `LinuxFileRepository`;
+- discovery does not create provider identity;
+- discovery does not grant read/write access;
+- discovery does not traverse candidate contents;
+- every candidate requires explicit selection;
+- removable-media candidate classification is not proof of physical removability or safe-eject support.
 
-Discovery does **not** construct `LinuxFileRepository`, create a `StorageProviderDescriptor`, grant read/write access, traverse candidate contents, authorize mutations, or make a removable-media safe-eject claim. The eventual desktop application must preserve that discovery-versus-authorization boundary.
+XDG parsing accepts only literal `$HOME` / `${HOME}` forms or explicit absolute paths and does not execute shell expressions. Mount discovery parses `/proc/self/mountinfo`, filters ordinary pseudo/system-only surfaces, and decodes Linux mount escapes.
 
-### Current development harness
+### 5.3 Linux desktop controller
 
-`LinuxDevelopmentMain` is a non-production command-line harness. Explicit-root mode accepts one selected root and exposes a read-only listing through `LinuxFileRepository`. `--locations` exposes only the read-only location-candidate report and does not create a provider. The harness deliberately does not expose create/rename/delete/transfer commands even though provider primitives are testable; destructive user-facing Linux workflows require a real desktop UX, conflict handling, recovery context, and platform acceptance.
+`LinuxDesktopController` is the application boundary between discovered location metadata and an authorized provider-backed browsing session.
 
-### Required desktop destination
+The controller preserves the following invariant by construction:
 
-The native Linux client still must add:
+```text
+discover candidate
+≠ highlight candidate
+≠ authorize provider
+```
 
-- user-facing Home/XDG location presentation, selection, navigation, and persistence policy over the current read-only discovery foundation;
-- filesystem permissions, ownership, ACL/security metadata presentation and policy where applicable;
-- reviewed symbolic-link navigation behavior if future requirements justify following links;
-- authoritative mount/removable-device state, disconnect/reconnect handling, safe removal/eject behavior, and explicit mount-boundary UX beyond current mount-candidate discovery;
-- capability differences across local, removable, FUSE, network, and other mounted filesystems;
-- filesystem-race handling and durable operation reconciliation;
-- desktop file associations and Open With behavior;
-- clipboard transfers and drag-and-drop;
-- keyboard and pointer navigation;
-- windows, tabs, context menus, split/dual-pane workflows, and desktop density;
-- native accessibility and desktop-environment interoperability;
-- an accepted production desktop Glaze UI implementation;
-- accepted packaging and supported-environment boundaries.
+Only an explicit **Open location** action may invoke the provider factory for the selected candidate. Failed open attempts leave no provider authorized. Folder navigation accepts only folders that belong to the active provider ID. Returning to Locations clears the active provider/current-location state.
 
-Exact Linux toolkit, packaging formats, and supported distribution matrix remain implementation and release decisions. No Flatpak, AppImage, Debian, RPM, Snap, desktop environment, or distribution is accepted merely because it is named as a possible delivery surface. The current Gradle/JVM distribution is development evidence, not a production package commitment.
+The controller is currently read-only from the desktop presentation perspective even though `LinuxFileRepository` contains bounded mutation primitives tested separately.
+
+### 5.4 `:linux-desktop` — development presentation layer
+
+`:linux-desktop` is a separate Compose Multiplatform Desktop presentation module. It depends on `:core` and `:linux-client`; Compose dependencies do not pollute the existing `:linux-client` command-line development distribution.
+
+`LinuxDesktopDevelopmentMain` currently provides:
+
+- edge-integrated location navigation;
+- explicit candidate highlighting and **Open location** authorization;
+- responsive toolbar behavior;
+- solid file-content presentation;
+- provider-scoped folder browsing and back navigation;
+- symbolic-link visibility without traversal;
+- a contextual inspector on wider windows;
+- explicit status/error/development-boundary presentation.
+
+This is genuine desktop presentation source, but it remains a development surface. It does not establish rendered/native Glaze conformance, production packaging, complete accessibility/input acceptance, or Linux Stable support.
+
+### 5.5 Command-line development harness
+
+`LinuxDevelopmentMain` remains a separate non-production headless harness. Explicit-root mode performs a read-only provider listing. `--locations` performs read-only location-candidate reporting without creating a provider.
+
+The CLI distribution remains useful as deterministic provider/discovery/build evidence and is intentionally kept separate from the desktop presentation runtime.
 
 ## 6. Cross-platform resource identity
 
@@ -162,27 +164,25 @@ Linux discovery candidate path
 ≠ backup/recovery record
 ```
 
-File Manager must never use path-string substitution to claim that one representation is the same resource on another platform. A discovered Linux path is also not automatically equivalent to a File Manager provider resource. Cross-platform access must resolve through provider identity, authorized transfers/synchronization, or bounded GoreeCloud Mesh coordination.
-
-The shared application layer exposes common concepts—location, capability, operation, provenance, sync, backup, privacy, security, continuity—but the adapter remains authoritative for native resource mechanics.
+File Manager must never use path-string substitution to claim one representation is the same resource on another platform. Cross-platform access resolves through provider identity, authorized transfer/synchronization, or bounded GoreeCloud Mesh coordination.
 
 ## 7. Operation semantics
 
-Provider mutation results use three outcomes:
+Provider mutations use three outcomes:
 
-- `SUCCEEDED` — the operation returned success and File Manager obtained the expected resulting state where applicable.
-- `REJECTED` — File Manager or the provider deliberately refused the requested operation before treating it as successful.
+- `SUCCEEDED` — execution returned success and expected resulting state was obtained where applicable.
+- `REJECTED` — File Manager/provider deliberately refused the request.
 - `FAILED` — execution or post-operation verification failed.
 
-After a mutation attempt, a user-facing platform layer must reconcile provider state rather than assuming an error proves that no side effect occurred.
+After a mutation attempt, a user-facing layer must reconcile provider state rather than assuming an error proves no side effect occurred.
 
-The current destructive-operation safety boundary deliberately refuses recursive folder deletion on both Android and Linux development providers. File Manager has not yet implemented the unified Trash, backup/recovery, Everkeep, and operation-journal safeguards required before broad recursive destruction should be exposed.
+The current destructive-operation boundary deliberately refuses recursive folder deletion on Android and Linux development providers. Unified Trash, backup/recovery, Everkeep, operation-journal, and recovery-aware safeguards remain prerequisites for broader destructive workflows.
 
-These semantics apply to both platform targets. Linux filesystem calls and Android provider calls fail differently, but neither platform may bypass shared outcome and reconciliation rules.
+The current Linux desktop development surface does not expose provider mutation actions.
 
 ## 8. Verified ordinary-file transfer
 
-`FileTransferService` lives in `:core` and accepts registered `FileStorageProvider` instances.
+`FileTransferService` lives in `:core` and operates across registered `FileStorageProvider` instances.
 
 For ordinary-file copy/move it:
 
@@ -190,85 +190,45 @@ For ordinary-file copy/move it:
 2. checks source `COPY`/`MOVE` and destination `CREATE_FILE` capability;
 3. rejects recursive folder transfer;
 4. creates the destination through its provider;
-5. streams the source while computing SHA-256;
+5. streams source bytes while computing SHA-256;
 6. reopens the resulting destination and computes a second SHA-256 digest;
 7. accepts copy success only when the digests match;
 8. removes a failed/corrupt destination when possible;
-9. for move, deletes the source only after verified destination integrity;
-10. if source deletion fails after verified copy, retains both resources and reports failure rather than pretending the move completed.
-
-This service is shared by Android and Linux provider code. Linux tests exercise cross-provider Linux ordinary-file copy/move through the same implementation; Android UI destination selection remains future work.
+9. for move, deletes the source only after destination integrity succeeds;
+10. if source deletion fails after verified copy, retains both resources and reports failure.
 
 ## 9. File-name safety
 
-The shared file-name policy trims surrounding whitespace and rejects empty names, `.` / `..`, path separators, null characters, and overlong names before a mutation request is issued.
+The shared filename policy trims surrounding whitespace and rejects empty names, `.` / `..`, path separators, null characters, and overlong names before mutation.
 
-This policy is a File Manager portability/safety floor. Backing providers may enforce additional naming constraints and remain authoritative for those constraints. Linux and Android adapters preserve provider-specific naming rules rather than assuming identical filename semantics.
+Providers may impose stricter platform-specific constraints.
 
 ## 10. Unified evidence model
 
-File Manager composes separate evidence dimensions. At minimum:
+File Manager composes separate evidence dimensions for storage/location, synchronization, backup/recovery, Everkeep continuity, sharing/access, Privacy Shield, Wardveil, identity/device context, versions, provenance, and activity.
 
-```text
-storage/location
-local availability
-sync state + evidence
-backup/recoverability state + evidence
-Everkeep continuity/preservation state + evidence
-sharing/access
-Privacy Shield state + evidence
-Wardveil state + evidence
-identity/device context
-version/provenance/activity
-```
-
-No dimension can silently manufacture another. The UI must preserve `unknown`, `unavailable`, `pending`, expired, and unverified states where applicable.
+No dimension may manufacture another. Unknown, unavailable, pending, expired, stale, or unverified evidence remains visibly non-positive.
 
 ## 11. Sync versus backup
 
-A synchronized object is a replicated working state. Synchronization can propagate deletion or corruption. Independent backup/recovery protection is a separate authority and evidence chain. Therefore:
+A synchronized object is replicated working state. Synchronization can propagate deletion or corruption. Independent backup/recovery protection is a separate authority and evidence chain.
 
 ```text
 sync == synced  ≠  backup == verified recoverable
 ```
 
-This invariant is represented in shared source and unit tests.
-
 ## 12. Platform authority boundaries
 
-### GoreeCloud Drive
+- **GoreeCloud Drive** owns its resource/storage/sharing/version identity.
+- **GoreeCloud Sync** owns synchronization, replication, and conflict state.
+- **GoreeCloud Backup / Everkeep** own backup, continuity, recovery, preservation, and recoverability evidence.
+- **Privacy Shield** owns privacy/consent/purpose-limitation authority for privacy-relevant processing.
+- **Wardveil Security** owns applicable security evidence and policy outcomes.
+- **GoreeCloud Identity** owns authenticated actor/service/device/session and delegated-access authority.
+- **GoreeCloud Mesh** coordinates bounded events/state without becoming the underlying authority.
+- **Glaze UI** governs presentation, interaction, accessibility, responsiveness, and design semantics but cannot manufacture platform truth.
 
-Drive is a storage/resource authority for its files, ownership, and applicable sharing/version state. File Manager consumes Drive contracts; it does not pretend Linux paths or Android document URIs are Drive resources.
-
-### GoreeCloud Sync
-
-Sync owns synchronization state, device replication/conflict state, and applicable synchronization controls.
-
-### GoreeCloud Backup and Everkeep
-
-Backup is the user-facing backup workflow/service. Everkeep is the broader continuity/resilience/preservation authority. File Manager must distinguish backup existence, integrity verification, restore testing, recovery eligibility, and preservation state.
-
-### Privacy Shield
-
-Privacy Shield determines privacy/consent/data-use authority. File Manager must not infer an ALLOW decision merely because an actor has operating-system resource access or is authenticated. Indexing, remote search, previews, sharing, backup, synchronization, and telemetry are separate privacy-relevant operations.
-
-### Wardveil Security
-
-Wardveil determines applicable security evidence and security-policy outcomes. File Manager consumes normalized Wardveil contracts, never substitutes a scanner-vendor result for Wardveil authority, and never labels missing coverage as clean/protected.
-
-### GoreeCloud Identity
-
-Identity owns authentication, accounts, actors/services, credentials, sessions, devices, authorization primitives, and delegated authority relevant to file access.
-
-### GoreeCloud Mesh
-
-Mesh coordinates bounded events/state between systems. Successful Mesh delivery is not proof that a resource operation or security/privacy/continuity decision succeeded.
-
-### Glaze UI
-
-GLAZE UI V1.3 / 1.3.0 is the current governed Stable consumer target. Glaze UI governs application presentation, interaction, accessibility, responsiveness, and design-system semantics. It may visualize evidence but cannot create platform truth. Each supported File Manager platform requires its own current-revision conformance evidence.
-
-The Linux command-line development harness is not a Glaze UI implementation and must not be counted as desktop UI conformance evidence.
+Operating-system resource access alone does not imply Privacy Shield allowance, Wardveil approval, backup protection, recoverability, or synchronization state.
 
 ## 13. Target operation architecture
 
@@ -277,7 +237,7 @@ The complete mutation path remains:
 ```text
 user/app intent
 → resolve exact provider + resource identity
-→ obtain applicable identity/privacy/security authorization/evidence
+→ obtain applicable identity/privacy/security authority/evidence
 → validate provider capability + operation preconditions
 → enqueue/journal operation
 → provider executes or rejects
@@ -286,54 +246,28 @@ user/app intent
 → update activity/provenance and bounded Mesh events
 ```
 
-For Linux, desktop location discovery may precede this path but does not replace the explicit provider-selection/authorization step. No mutation may begin directly from a discovery candidate.
-
-The current Android slice implements provider identity, capability checks, direct bounded mutations, provider-generic ordinary-file transfer verification, result classification, and refresh reconciliation. The current Linux provider implements the storage-side provider/capability/transfer foundation while location discovery remains metadata-only; neither currently exposes a desktop mutation workflow. A durable Operations Center, complete conflict engine, Trash, and platform-authority preflight remain future work.
+Linux location discovery may precede provider authorization, but no operation begins directly from a discovery candidate.
 
 ## 14. Search architecture
 
-Search will be layered: local/provider metadata search; authorized content indexing; cross-provider aggregation; saved filters/smart collections; and optional natural-language interpretation. Privacy Shield must gate collection/processing scope, and indexes must not become an uncontrolled copy of sensitive file content.
-
-Linux and Android may use different native indexing primitives where justified, but both must emit compatible bounded search results/evidence without transferring private content into unauthorized indexes.
+Search will be layered across local/provider metadata, authorized content indexing, cross-provider aggregation, saved filters/smart collections, and optional natural-language interpretation. Privacy Shield must gate collection/processing scope, and indexes must not become uncontrolled copies of sensitive content.
 
 ## 15. UI architecture
 
-Shared information architecture, terminology, truth-state semantics, component roles, and accessibility expectations apply across Linux and Android.
+Android and Linux share information architecture, terminology, evidence semantics, component roles, and accessibility expectations without sharing inappropriate platform-native layout or storage mechanics.
 
-The current Android shell uses Jetpack Compose/Material 3 with a repository-local Glaze mapping foundation. It has adaptive phone/wide navigation, storage-location cards, capability-driven actions, confirmation surfaces, and evidence-safe status wording.
+The Android shell uses Jetpack Compose/Material 3 with GoreeCloud Glaze mapping. The Linux development presentation uses Compose Multiplatform Desktop in the separate `:linux-desktop` module.
 
-The Linux development harness currently has no production UI layer. Its `--locations` report is engineering evidence, not the desktop Home/location surface. The future desktop client must provide desktop-native Home/XDG/mount presentation and explicit location selection, keyboard/pointer interaction, focus behavior, context menus, windows/tabs, drag-and-drop, larger-display density, Open With/file-association integration, and split/dual-pane workflows while retaining Glaze semantics and accessibility requirements.
+The Linux desktop source currently establishes a desktop-specific location sidebar, responsive toolbar, solid content plane, contextual inspector, explicit provider-opening workflow, and read-only navigation. It still requires complete keyboard/pointer/focus behavior, context menus, windows/tabs, drag-and-drop, clipboard workflows, Open With/file associations, native accessibility, mount/removable lifecycle, safe eject, and representative rendered acceptance.
 
-Both native user-facing clients require fresh migration to the current governed GLAZE UI V1.3 / 1.3.0 target and independent rendered/native acceptance. Visual similarity does not establish conformance.
+Both platforms require independent current **GLAZE UI V1.3 / 1.3.0** rendered/native acceptance before conformance may be claimed.
 
 ## 16. Build, packaging, and acceptance split
 
-Android and Linux are independently validated surfaces. The project maintains separate evidence boundaries for:
+Android and Linux are independently validated surfaces.
 
-- source/build identity;
-- dependencies and toolchains;
-- package/distribution identity and signing;
-- storage/provider behavior;
-- location-discovery behavior where applicable;
-- native input/accessibility behavior;
-- representative device/distribution/desktop-environment coverage as applicable;
-- performance and failure behavior;
-- release/rollback provenance.
+Android CI checks repository contracts, shared-core tests, Android tests, lint, development APK assembly, package/application identity, and APK artifact evidence.
 
-The Android workflow checks repository contracts, shared-core tests, Android tests, lint, development APK assembly, package/application identity, and APK artifact evidence.
+Linux CI checks repository contracts, Linux-desktop contract validation, shared-core/Linux provider/discovery/controller tests, isolated `:linux-desktop` compilation, the existing `:linux-client` development distribution, explicit-root CLI smoke behavior, and development-only artifact evidence.
 
-The Linux development workflow checks repository contracts, shared-core tests, Linux provider/location-discovery tests, JVM development distribution construction, explicit-root harness smoke behavior, and a distribution digest. Its artifact is explicitly development-only and cannot be presented as an accepted Linux package or Stable release.
-
-Only a completed workflow for the exact candidate revision is evidence for that candidate. Android evidence cannot be reused as Linux evidence, and a Linux development build cannot be upgraded into desktop/package/runtime acceptance without the missing platform-specific gates.
-
-## 17. Delivery phases
-
-1. **Native Android foundation** — app shell, provider/evidence model, app-private browsing, CI. Completed as source/build foundation.
-2. **Authorized Android storage** — user-selected document trees, persisted permissions, capability model, bounded mutations and verified ordinary-file transfer foundation. Implemented as current development source scope; broad acceptance remains pending.
-3. **Cross-platform core separation** — extract provider/resource/operation/transfer/evidence contracts so platform-neutral logic is not coupled to Android UI/storage APIs. Implemented in merged development source through `:core`; platform acceptance remains separate.
-4. **Linux native foundation** — currently partial: bounded Linux filesystem provider, read-only Home/XDG/mount location-candidate discovery, shared transfer integration, tests, command-line development harness, and Linux CI definition are present. Native desktop Glaze UI, user-facing location selection/navigation, authoritative mount/removable lifecycle and safe eject, desktop input/accessibility, accepted packaging, and representative runtime acceptance remain pending.
-5. **Complete local operations** — multi-selection, conflict handling, durable Operations Center, Trash/recovery strategy, metadata/details, previews, search, and recursive workflows only after safeguards are accepted.
-6. **GoreeCloud storage** — Drive + Sync integration, offline state, sharing/versions, cross-location transfers.
-7. **Protection and continuity** — Wardveil, Privacy Shield, Backup/Everkeep, evidence-backed destructive-action safety and recovery.
-8. **Cross-device intelligence** — Identity/Mesh device context, unified activity/provenance, smart/natural-language discovery.
-9. **Product acceptance** — current Glaze/Wardveil/Privacy/Everkeep gates, runtime failure testing, representative Linux and Android acceptance, signing/release/rollback, and explicitly scoped Stable qualification.
+The `:linux-client` Gradle tar/distribution is not a supported Debian, Flatpak, AppImage, RPM, Snap, or production package. `:linux-desktop` compilation is not a production desktop package. Linux remains absent from machine-readable supported-platform claims until the independent runtime, packaging, accessibility/input, Glaze, signing/release, and representative-environment gates are satisfied.
