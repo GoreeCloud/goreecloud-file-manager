@@ -20,10 +20,10 @@ A Linux filesystem path, Android document/content URI, GoreeCloud Drive resource
 The repository currently provides:
 
 - a native Android/Jetpack Compose application foundation;
-- a shared JVM `:core` module consumed by Android and the Linux development module, owning provider-scoped file/status models, provider contracts, file-name policy, GoreeCloud authority boundaries, and SHA-256-verified ordinary-file transfer semantics;
+- a shared JVM `:core` module consumed by Android and Linux development modules, owning provider-scoped file/status models, provider contracts, file-name policy, GoreeCloud authority boundaries, and SHA-256-verified ordinary-file transfer semantics;
 - a real Android app-private local-storage provider;
 - Android Storage Access Framework document-tree authorization using the system picker and persisted URI permissions;
-- browsing of app-private storage and user-selected Android document trees without requesting unrestricted filesystem access;
+- browsing of app-private storage and user-authorized Android document trees without requesting unrestricted filesystem access;
 - provider-scoped resource identity and explicit per-item capabilities;
 - verified create-folder, rename, and delete operations for supported Android providers;
 - a provider-generic regular-file copy/move transfer service that streams source bytes, publishes through the destination provider, reopens the destination, and requires matching SHA-256 content before a move may remove its source;
@@ -33,12 +33,12 @@ The repository currently provides:
 - a unified file-status domain model that keeps synchronization, backup/recoverability, privacy, security, and continuity state separate;
 - explicit `unknown`/`unavailable` evidence states so missing integration is not presented as protection;
 - adapter boundaries for GoreeCloud Drive, GoreeCloud Sync, GoreeCloud Backup, Everkeep, Privacy Shield, Wardveil Security, GoreeCloud Identity, and GoreeCloud Mesh;
-- a `:linux-client` JVM development module that consumes the shared core and establishes the Linux provider/discovery/application boundary without claiming production Linux acceptance;
+- a `:linux-client` JVM development module for the bounded Linux provider, location discovery, controller, and command-line development harness;
 - a bounded Linux local-filesystem provider rooted at one explicit directory, with provider-relative resource identity, path-escape rejection, symbolic-link visibility without traversal/mutation, and mutation capabilities withheld across detected mount/FileStore boundaries;
 - Linux create-file, create-folder, rename, ordinary-file read/write, shared verified copy/move participation, and empty-only folder deletion primitives within that bounded provider;
 - read-only Linux location-candidate discovery for Home, supported XDG user directories, mounted filesystems, and removable-media candidates; every discovered location still requires explicit selection before a provider exists;
 - a non-production Linux command-line development harness that performs either an explicit-root read-only listing or a read-only `--locations` candidate report;
-- a development-only Compose Multiplatform Desktop `1.12.0` presentation surface with an edge location sidebar, responsive toolbar, solid file-content plane, contextual inspector, and read-only provider-scoped folder browsing;
+- a separate `:linux-desktop` presentation module using Compose Multiplatform Desktop `1.12.0` with an edge location sidebar, responsive toolbar, solid file-content plane, contextual inspector, and read-only provider-scoped folder browsing;
 - a Linux desktop controller that structurally separates discovery/highlighting from provider construction: only the explicit **Open location** action may create the bounded provider, and returning to Locations closes that provider boundary;
 - unit tests proving the desktop discovery/highlight path is non-authorizing, explicit open constructs the provider, navigation stays provider-scoped, failed open leaves no provider authorized, and returning to Locations clears the active provider;
 - repository validation plus independent Android and Linux development workflow definitions; exact-head workflow results remain the acceptance evidence for each candidate revision;
@@ -70,19 +70,19 @@ Every discovery result carries an explicit-selection requirement. Discovery does
 
 The current candidate adds a non-production Compose Desktop surface rather than relabeling the CLI harness as a desktop application. It presents discovered location candidates first. Highlighting a candidate remains metadata-only; the separate **Open location** action is required before `LinuxFileRepository` is constructed. The resulting desktop browsing session is read-only at the UI layer even when the provider reports mutation capabilities.
 
-The desktop composition follows the current GLAZE UI V1.3 direction at source/design level: content-first window composition, edge-integrated location navigation, responsive toolbar, solid file-content plane, contextual information, clear state/error messaging, and deliberate avoidance of a stretched mobile layout. This source implementation is **not** a Glaze conformance certificate. Rendered/native accessibility, keyboard/pointer, reduced-motion/transparency/contrast behavior, representative desktop review, and current consumer acceptance remain pending.
+The desktop composition follows the current GLAZE UI V1.3 direction at source/design level: content-first window composition, edge-integrated location navigation, responsive toolbar, solid file-content plane, contextual information, clear state/error messaging, and deliberate avoidance of a stretched mobile layout. This source implementation is **not** a Glaze conformance certificate. Rendered/native accessibility, keyboard/pointer, reduced-motion/transparency/contrast behavior, representative desktop review, and current consumer acceptance remain pending. **Current-Stable conformance is not claimed.**
 
 Run the development surface from a Linux graphical session with:
 
 ```bash
-gradle :linux-client:runDesktopDevelopment
+gradle :linux-desktop:runDevelopment
 ```
 
 This command is a developer workflow, not a supported Linux installation or release procedure.
 
 ### Command-line development harness
 
-The current Linux harness remains intentionally read-only at its user-facing command surface. Explicit-root mode lists one selected provider root. `--locations` prints read-only discovery candidates without granting provider authorization. It remains useful for headless provider/discovery/build validation independently of the graphical development surface.
+The current Linux development harness remains intentionally read-only at its user-facing command surface. Explicit-root mode lists one selected provider root. `--locations` prints read-only discovery candidates without granting provider authorization. It remains useful for headless provider/discovery/build validation independently of the graphical development surface.
 
 A passing Linux development workflow establishes exact-revision source/build/test evidence for this bounded development slice only. It does **not** by itself make Linux a supported platform in `goreecloud.platform.yaml`, establish production packaging, prove desktop accessibility/input integration, or permit a Stable claim.
 
@@ -111,7 +111,7 @@ This is an original GoreeCloud-owned application. Complete third-party file-mana
 
 The cross-platform architecture separates platform-neutral File Manager domain/provider/operation contracts from Android- and Linux-specific adapters. Platform-native behavior is required; Android storage semantics must not be imposed on Linux, and Linux path semantics must not be imposed on Android document providers.
 
-Compose Multiplatform Desktop `1.12.0` is the current Linux **development presentation toolkit** because it fits the existing Kotlin/JVM module and supports purpose-built desktop composition. This does not make the Android and Linux layouts shared or interchangeable, and it does not establish supported Linux packaging, representative runtime acceptance, or a permanent production release decision by itself.
+Compose Multiplatform Desktop `1.12.0` is the current Linux **development presentation toolkit** because it fits the existing Kotlin/JVM architecture and supports purpose-built desktop composition. This does not make the Android and Linux layouts shared or interchangeable, and it does not establish supported Linux packaging, representative runtime acceptance, or a permanent production release decision by itself.
 
 ## Mandatory GoreeCloud platform gates
 
@@ -156,14 +156,15 @@ gradle :app:assembleDebug
 
 ## Linux development baseline
 
-The current Linux source baseline is Kotlin/JVM 17 with Compose Multiplatform Desktop `1.12.0` for the graphical development surface. The module consumes the same `:core` contracts as Android while retaining Linux-specific provider, discovery, authorization, and desktop presentation behavior.
+The current Linux source baseline is Kotlin/JVM 17. The bounded provider/discovery/controller/CLI layer lives in `:linux-client`, while Compose Multiplatform Desktop `1.12.0` is isolated in `:linux-desktop`. Both consume GoreeCloud File Manager's shared contracts without transferring Android storage semantics into Linux.
 
 Run the bounded Linux development checks with:
 
 ```bash
 python3 scripts/validate_repository.py
+python3 scripts/validate_linux_desktop.py
 gradle :core:test :linux-client:test
-gradle :linux-client:classes
+gradle :linux-desktop:classes
 gradle :linux-client:installDist :linux-client:distTar
 ./linux-client/build/install/linux-client/bin/linux-client /an/explicit/root
 ./linux-client/build/install/linux-client/bin/linux-client --locations
@@ -172,12 +173,12 @@ gradle :linux-client:installDist :linux-client:distTar
 Run the non-production desktop surface from a Linux graphical session with:
 
 ```bash
-gradle :linux-client:runDesktopDevelopment
+gradle :linux-desktop:runDevelopment
 ```
 
 The explicit-root command performs a read-only provider listing. `--locations` performs read-only location-candidate discovery and does not grant provider authorization. The graphical development surface also keeps discovery and provider construction separate and exposes read-only browsing only.
 
-Exact Linux package formats are intentionally not claimed yet. The generated Gradle distribution is development evidence, not a supported Debian, Flatpak, AppImage, RPM, Snap, or other production package. Packaging and distribution choices must be validated against GoreeCloud release requirements before any format is called supported.
+Exact Linux package formats are intentionally not claimed yet. The generated CLI Gradle distribution is development evidence, not a supported Debian, Flatpak, AppImage, RPM, Snap, or other production package. Packaging and distribution choices must be validated against GoreeCloud release requirements before any format is called supported.
 
 ## License
 
